@@ -77,7 +77,7 @@ function App() {
           style={{ opacity: s2Opacity, y: s2Y, pointerEvents: s2PointerEvents }}
           className="absolute flex flex-col items-center justify-center px-6 w-full max-w-3xl"
         >
-          <p className="text-2xl md:text-5xl font-black text-white text-center uppercase tracking-wide leading-tight drop-shadow-xl">
+          <p className="text-2xl md:text-5xl font-black text-white text-center tracking-wide leading-tight drop-shadow-xl">
             
             
             <span className="text-white/70  text-xl  mt-4 block">
@@ -97,12 +97,12 @@ function App() {
         </motion.div>
 
         {/* ================= SECTION 3: Spotify ================= */}
-        {/* <motion.div
+        <motion.div
           style={{ opacity: s3Opacity, y: s3Y, scale: s3Scale, pointerEvents: s3PointerEvents }}
           className="absolute flex flex-col items-center justify-center px-6 w-full max-w-2xl"
         >
-          <p className="text-xl md:text-2xl text-white/70 mb-6 tracking-wide drop-shadow-md text-center">
-            here's some music
+          <p className="text-white/70 text-xl mt-4 block text-center tracking-wide leading-tight font-black drop-shadow-xl mb-6">
+            Here's some music
           </p>
           <Card className="w-full border-white/5 backdrop-blur-2xl shadow-2xl p-2 rounded-3xl overflow-hidden transition-all duration-500">
             <CardContent className="p-0">
@@ -119,7 +119,7 @@ function App() {
               </iframe>
             </CardContent>
           </Card>
-        </motion.div> */}
+        </motion.div>
 
         {/* Action Buttons / Footer (Always visible) */}
         <div className="absolute bottom-8 left-0 w-full flex items-center justify-center gap-8 pointer-events-auto z-50">
