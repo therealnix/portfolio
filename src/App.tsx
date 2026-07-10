@@ -48,7 +48,7 @@ function App() {
           className="absolute items-center justify-center w-full h-full"
         >
           {/* Relative wrapper sets the size of the image so text can be positioned relative to its edges */}
-          <div className="relative @container w-[80vw] h-auto md:w-auto md:h-[60vh] aspect-[4/5]">
+          <div className="relative @container w-[70vw] h-auto md:w-auto md:h-[60vh] aspect-[4/5]">
             
             {/* The Image (has overflow-hidden for rounded corners) */}
             <div className="absolute inset-0 rounded-[2rem] overflow-hidden shadow-2xl brightness-75">
