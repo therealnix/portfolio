@@ -1,8 +1,55 @@
 import { useState, useEffect } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import profilePic from "./assets/profile picture.jpeg";
 import { FaInstagram, FaLinkedin, FaEnvelope, FaMoon, FaSun, FaChevronDown } from "react-icons/fa";
 import { Button } from "./components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription } from "./components/ui/card";
+import ClickSpark from "./components/ui/ClickSpark";
+
+// Easy to edit array for Section 3 Cards. 
+// Adding or removing items will automatically recalculate their positions in the circle!
+// You can use `offsetDegrees` to add a bit of random displacement (e.g. -10 to 10 degrees).
+// You can use `radiusOffset` to push cards further in or out from the center circle (e.g. -5 to 5).
+// You can use `shadowClass` to simulate different floating heights (e.g. shadow-md, shadow-lg, shadow-xl, shadow-2xl).
+export const CARDS_DATA: any[] = [
+  { 
+    content: (
+      <div className="w-full flex flex-col">
+        <iframe className="dark:invert dark:hue-rotate-180 transition-[filter] duration-500 rounded-md" width="100%" height="110" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2292371054&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true"></iframe>
+        <div style={{ fontSize: "10px", color: "#cccccc", lineBreak: "anywhere", wordBreak: "normal", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", fontFamily: "Interstate,Lucida Grande,Lucida Sans Unicode,Lucida Sans,Garuda,Verdana,Tahoma,sans-serif", fontWeight: 100, marginTop: "4px" }}>
+          <a href="https://soundcloud.com/jigglniggl" title="S0N!K" target="_blank" rel="noopener noreferrer" style={{ color: "#cccccc", textDecoration: "none" }}>S0N!K</a> · <a href="https://soundcloud.com/jigglniggl/turntuppp" title="turntuppp - S0N!K Bootleg" target="_blank" rel="noopener noreferrer" style={{ color: "#cccccc", textDecoration: "none" }}>turntuppp - S0N!K Bootleg</a>
+        </div>
+      </div>
+    ),
+    offsetDegrees: -15,
+    radiusOffset: 0,
+    shadowClass: "shadow-xl"
+  },
+  { 
+    title: "Jost-Shop", 
+    desc: "A custom Three.js Shopify store I've built. Check it out!", 
+    offsetDegrees: 5,
+    href: "https://jost-shop.com",
+    radiusOffset: 0,
+    shadowClass: "shadow-2xl"
+  },
+  { title: "Machine Learning", desc: "Placeholder 2", offsetDegrees: 12, radiusOffset: 0, shadowClass: "shadow-lg" },
+  { 
+    content: (
+      <div className="w-full flex flex-col">
+        <iframe className="dark:invert dark:hue-rotate-180 transition-[filter] duration-500 rounded-md" width="100%" height="110" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2093814105&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true"></iframe>
+        <div style={{ fontSize: "10px", color: "#cccccc", lineBreak: "anywhere", wordBreak: "normal", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", fontFamily: "Interstate,Lucida Grande,Lucida Sans Unicode,Lucida Sans,Garuda,Verdana,Tahoma,sans-serif", fontWeight: 100, marginTop: "4px" }}>
+          <a href="https://soundcloud.com/jigglniggl" title="S0N!K" target="_blank" rel="noopener noreferrer" style={{ color: "#cccccc", textDecoration: "none" }}>S0N!K</a> · <a href="https://soundcloud.com/jigglniggl/lamp-rawmix1" title="Onedanceee - S0N!K Bootleg" target="_blank" rel="noopener noreferrer" style={{ color: "#cccccc", textDecoration: "none" }}>Onedanceee - S0N!K Bootleg</a>
+        </div>
+      </div>
+    ),
+    offsetDegrees: -15,
+    radiusOffset: 0,
+    shadowClass: "shadow-2xl"
+  },
+  { title: "Design", desc: "Placeholder 3", offsetDegrees: -8, radiusOffset: 0, shadowClass: "shadow-xl" },
+  { title: "Analytics", desc: "Placeholder 4", offsetDegrees: 6, radiusOffset: 0, shadowClass: "shadow-2xl" },
+];
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -18,23 +65,39 @@ function App() {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
   // We will use scrollYProgress (0 to 1) for consistent responsive animation pacing across the 3 sections.
   const { scrollYProgress } = useScroll();
+  const smoothProgress = useSpring(scrollYProgress, { stiffness: 150, damping: 25, restDelta: 0.001 });
 
   // SECTION 1: Image & "Hi! I'm Nik"
-  const s1Scale = useTransform(scrollYProgress, [0, 0.3, 0.6, 1], [1, 1, 0.85, 0.85]);
-  const s1Y = useTransform(scrollYProgress, [0, 0.3, 0.6, 1], [0, 0, -80, -80]);
-  const s1Blur = useTransform(scrollYProgress, [0, 0.3, 0.6, 1], ["blur(0px)", "blur(0px)", "blur(20px)", "blur(20px)"]);
-  const s1Opacity = useTransform(scrollYProgress, [0, 0.3, 0.6, 1], [1, 1, 0, 0]);
+  const s1Scale = useTransform(smoothProgress, [0, 0.2, 0.4, 1], [1, 1, 0.85, 0.85]);
+  const s1Y = useTransform(smoothProgress, [0, 0.2, 0.4, 1], [0, 0, -80, -80]);
+  const s1Blur = useTransform(smoothProgress, [0, 0.2, 0.4, 1], ["blur(0px)", "blur(0px)", "blur(20px)", "blur(20px)"]);
+  const s1Opacity = useTransform(smoothProgress, [0, 0.2, 0.4, 1], [1, 1, 0, 0]);
   // Use display: none to force the browser to completely remove the layer after it fades out
-  const s1Display = useTransform(scrollYProgress, (val) => (val > 0.7 ? "none" : "flex"));
+  const s1Display = useTransform(smoothProgress, (val) => (val > 0.45 ? "none" : "flex"));
 
   // SECTION 2: Paragraph
-  // Animates continuously until the very bottom of the scroll (1.0) so there is no dead space
-  const s2Opacity = useTransform(scrollYProgress, [0, 0.4, 0.8, 1], [0, 0, 1, 1]);
-  const s2Y = useTransform(scrollYProgress, [0, 0.4, 1], [80, 80, 0]);
-  const s2PointerEvents = useTransform(scrollYProgress, (val) => (val > 0.5 ? "auto" : "none"));
+  const s2Opacity = useTransform(smoothProgress, [0, 0.25, 0.4, 0.55, 0.7, 1], [0, 0, 1, 1, 0, 0]);
+  const s2Y = useTransform(smoothProgress, [0, 0.25, 0.4, 0.55, 0.7, 1], [80, 80, 0, 0, -80, -80]);
+  const s2PointerEvents = useTransform(smoothProgress, (val) => (val > 0.35 && val < 0.65 ? "auto" : "none"));
+  const s2Display = useTransform(smoothProgress, (val) => (val > 0.75 ? "none" : "flex"));
+
+  // SECTION 3: What I Do
+  const s3Opacity = useTransform(smoothProgress, [0, 0.75, 0.9, 1], [0, 0, 1, 1]);
+  const s3Y = useTransform(smoothProgress, [0, 0.75, 0.9, 1], [80, 80, 0, 0]);
+  const s3PointerEvents = useTransform(smoothProgress, (val) => (val > 0.8 ? "auto" : "none"));
+  const s3CardsRotate = useTransform(smoothProgress, [0.75, 1], [90, 0]);
+  const s3CardsScale = useTransform(smoothProgress, [0.75, 1], [0.5, 1]);
+  const s3CardsCounterRotate = useTransform(s3CardsRotate, (val) => -val);
 
   return (
-    <div className="relative w-full dark:bg-black bg-white min-h-[200vh] font-sans transition-colors duration-500">
+    <ClickSpark 
+      sparkColor={isDarkMode ? '#fff' : '#000'} 
+      sparkSize={12} 
+      sparkRadius={20} 
+      sparkCount={8} 
+      duration={600}
+    >
+      <div className="relative w-full dark:bg-black bg-white min-h-[300vh] font-sans transition-colors duration-500">
       {/* Background Layer */}
       <div className="fixed inset-0 z-0 dark:bg-black bg-white transition-colors duration-500"></div>
 
@@ -102,7 +165,7 @@ function App() {
 
         {/* ================= SECTION 2: Paragraph ================= */}
         <motion.div 
-          style={{ opacity: s2Opacity, y: s2Y, pointerEvents: s2PointerEvents }}
+          style={{ opacity: s2Opacity, y: s2Y, pointerEvents: s2PointerEvents, display: s2Display }}
           className="absolute flex flex-col items-start justify-center w-[90%] md:w-[50vw]"
         >
           <p className="text-xl md:text-2xl font-medium dark:text-white text-black leading-relaxed text-left">
@@ -118,6 +181,64 @@ function App() {
               hit me up :)
             </a>
           </p>
+        </motion.div>
+
+        {/* ================= SECTION 3: What I Do ================= */}
+        <motion.div 
+          style={{ opacity: s3Opacity, y: s3Y, pointerEvents: s3PointerEvents }}
+          className="absolute inset-0 flex items-center justify-center w-full h-full"
+        >
+          <div className="relative w-full h-full max-w-6xl mx-auto flex items-center justify-center mb-[30px]">
+            
+            {/* Center Text */}
+            <p className="text-xl md:text-2xl font-medium dark:text-white text-black leading-relaxed text-center px-4 z-10">
+              Here's what I do
+            </p>
+            
+            {/* Floating Cards Spinning Container */}
+            <motion.div 
+              style={{ rotate: s3CardsRotate, scale: s3CardsScale }} 
+              className="absolute inset-0 w-full h-full"
+            >
+              {CARDS_DATA.map((card, index) => {
+                // Calculate position along an ellipse with a slight random displacement
+                const baseAngle = (index / CARDS_DATA.length) * 2 * Math.PI;
+                const offsetRadians = ((card.offsetDegrees || 0) * Math.PI) / 180;
+                const angle = baseAngle + offsetRadians;
+                
+                // Allow dynamic pushing inwards/outwards to prevent overlap without hitting edges
+                const radius = 34 + (card.radiusOffset || 0);
+                const left = `${50 + Math.cos(angle) * radius}%`;
+                const top = `${50 + Math.sin(angle) * radius}%`;
+
+                return (
+                  <motion.div 
+                    key={index}
+                    style={{ 
+                      left, 
+                      top, 
+                      x: "-50%", 
+                      y: "-50%",
+                      rotate: s3CardsCounterRotate 
+                    }} 
+                    whileHover={{ scale: 1.1, zIndex: 50 }} 
+                    className={`absolute w-56 md:w-64 cursor-pointer rounded-xl ${card.shadowClass || 'shadow-xl'} hover:shadow-none transition-shadow duration-300`}
+                    onClick={() => card.href && window.open(card.href, '_blank')}
+                  >
+                    <Card className="dark:bg-black/40 bg-white/40 dark:text-white text-black border-black/10 dark:border-white/10 backdrop-blur-md p-2 overflow-hidden dark:hover:bg-white/5 transition-colors h-full">
+                      {card.content ? card.content : (
+                        <CardHeader className="h-full flex flex-col justify-center">
+                          <CardTitle>{card.title}</CardTitle>
+                          <CardDescription>{card.desc}</CardDescription>
+                        </CardHeader>
+                      )}
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+
+          </div>
         </motion.div>
 
 
@@ -169,6 +290,7 @@ function App() {
         
       </div>
     </div>
+    </ClickSpark>
   );
 }
 
