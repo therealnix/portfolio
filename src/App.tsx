@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion";
 import profilePic from "./assets/profile picture.jpeg";
 import { FaInstagram, FaLinkedin, FaEnvelope, FaMoon, FaSun, FaChevronDown } from "react-icons/fa";
 import { Button } from "./components/ui/button";
@@ -31,9 +31,20 @@ export const CARDS_DATA: any[] = [
     offsetDegrees: 5,
     href: "https://jost-shop.com",
     radiusOffset: 0,
-    shadowClass: "shadow-2xl"
+    shadowClass: "shadow-2xl",
+    isModal: true,
+    modalContent: "Jost-Shop is the first Shopify store I've built featuring an integrated three.js homepage and some fancy animations. Had a lot of fun on that one. Feel free to take a look :)"
   },
-  { title: "Machine Learning", desc: "Placeholder 2", offsetDegrees: 12, radiusOffset: 0, shadowClass: "shadow-lg" },
+  { 
+    title: "Findus", 
+    desc: "What I'm currently working on", 
+    offsetDegrees: 0, 
+    radiusOffset: 0, 
+    shadowClass: "shadow-lg" , 
+    href:"https://go-findus.tech",
+    isModal: true,
+    modalContent: "Findus is an exciting new project I'm currently building. Stay tuned for more updates on this!"
+  },
   { 
     content: (
       <div className="w-full flex flex-col">
@@ -47,12 +58,32 @@ export const CARDS_DATA: any[] = [
     radiusOffset: 0,
     shadowClass: "shadow-2xl"
   },
-  { title: "Design", desc: "Placeholder 3", offsetDegrees: -8, radiusOffset: 0, shadowClass: "shadow-xl" },
-  { title: "Analytics", desc: "Placeholder 4", offsetDegrees: 6, radiusOffset: 0, shadowClass: "shadow-2xl" },
+  { 
+    title: "Cool things", 
+    desc: "Some things I find cool", 
+    offsetDegrees: -8, 
+    radiusOffset: 0, 
+    shadowClass: "shadow-xl",
+    isModal: true,
+    modalContent: "Beluga lentils, Adam Audio T7V, Traktor Controll MX-2, Hyperlite Pleasure, Lowa Cadin II, Arizona Iced Tea, Paracord, Luma, Niagara Launcher, BMW f87, ScreenZen, Billabong Boardshorts, Ikea, Rossignol Ski Boots, Nosebutter 360s, Sendlinger Spezialkebab, Victorinox, U3 Universität, FL Studio updates, myradl"
+  },
+
+  { 
+    title: "My CV", 
+    desc: "Download my resume", 
+    offsetDegrees: -10, 
+    radiusOffset: 0, 
+    shadowClass: "shadow-lg",
+    isModal: true,
+    modalContent: "Here you can download my CV to learn more about my experience and skills.",
+    download: true,
+    href: "/cv.pdf"
+  },
 ];
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<any>(null);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -98,6 +129,53 @@ function App() {
       duration={600}
     >
       <div className="relative w-full dark:bg-black bg-white min-h-[300vh] font-sans transition-colors duration-500">
+      
+      {/* Modal Overlay */}
+      <AnimatePresence>
+        {selectedCard && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/10 dark:bg-black/30 backdrop-blur-md pointer-events-auto"
+            onClick={() => setSelectedCard(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Card className="!bg-white dark:!bg-[#111] !backdrop-blur-none dark:text-white text-black border-black/10 dark:border-white/10 shadow-2xl p-6">
+                <CardHeader className="p-0">
+                  <CardTitle className="text-3xl font-bold">{selectedCard.title}</CardTitle>
+                  <CardDescription className="text-lg mt-4">{selectedCard.modalContent}</CardDescription>
+                </CardHeader>
+                <div className="mt-8 flex justify-end gap-3">
+                  {selectedCard.href && !selectedCard.download && (
+                    <Button 
+                      variant="secondary"
+                      onClick={() => window.open(selectedCard.href.startsWith('http') ? selectedCard.href : `https://${selectedCard.href}`, '_blank')}
+                    >
+                      Check it out!
+                    </Button>
+                  )}
+                  {selectedCard.href && selectedCard.download && (
+                    <a href={selectedCard.href} download>
+                      <Button variant="secondary">
+                        Download CV
+                      </Button>
+                    </a>
+                  )}
+                  <Button onClick={() => setSelectedCard(null)}>Close</Button>
+                </div>
+              </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Background Layer */}
       <div className="fixed inset-0 z-0 dark:bg-black bg-white transition-colors duration-500"></div>
 
@@ -190,15 +268,15 @@ function App() {
         >
           <div className="relative w-full h-full max-w-6xl mx-auto flex items-center justify-center mb-[30px]">
             
-            {/* Center Text */}
-            <p className="text-xl md:text-2xl font-medium dark:text-white text-black leading-relaxed text-center px-4 z-10">
+            {/* Desktop Center Text */}
+            <p className="hidden md:block text-xl md:text-2xl font-medium dark:text-white text-black leading-relaxed text-center px-4 z-10">
               Here's what I do
             </p>
             
-            {/* Floating Cards Spinning Container */}
+            {/* Desktop: Floating Cards Spinning Container */}
             <motion.div 
               style={{ rotate: s3CardsRotate, scale: s3CardsScale }} 
-              className="absolute inset-0 w-full h-full"
+              className="hidden md:block absolute inset-0 w-full h-full"
             >
               {CARDS_DATA.map((card, index) => {
                 // Calculate position along an ellipse with a slight random displacement
@@ -223,7 +301,10 @@ function App() {
                     }} 
                     whileHover={{ scale: 1.1, zIndex: 50 }} 
                     className={`absolute w-56 md:w-64 cursor-pointer rounded-xl ${card.shadowClass || 'shadow-xl'} hover:shadow-none transition-shadow duration-300`}
-                    onClick={() => card.href && window.open(card.href, '_blank')}
+                    onClick={() => {
+                      if (card.isModal) setSelectedCard(card);
+                      else if (card.href) window.open(card.href, '_blank');
+                    }}
                   >
                     <Card className="dark:bg-black/40 bg-white/40 dark:text-white text-black border-black/10 dark:border-white/10 backdrop-blur-md p-2 overflow-hidden dark:hover:bg-white/5 transition-colors h-full">
                       {card.content ? card.content : (
@@ -236,6 +317,44 @@ function App() {
                   </motion.div>
                 );
               })}
+            </motion.div>
+
+            {/* Mobile: Vertical Stack */}
+            <motion.div
+              style={{ scale: s3CardsScale }}
+              className="md:hidden absolute inset-0 w-full h-full flex flex-col items-center gap-6 px-4 pt-[15vh] pb-32 overflow-y-auto pointer-events-auto hide-scrollbar"
+            >
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-xl font-medium dark:text-white text-black leading-relaxed text-center shrink-0 mt-[10vh] mb-4"
+              >
+                Here's what I do
+              </motion.p>
+              {CARDS_DATA.map((card, index) => (
+                <motion.div 
+                  key={`mobile-${index}`}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  className={`w-full max-w-sm shrink-0 cursor-pointer rounded-xl ${card.shadowClass || 'shadow-xl'} transition-shadow duration-300`}
+                  onClick={() => {
+                    if (card.isModal) setSelectedCard(card);
+                    else if (card.href) window.open(card.href, '_blank');
+                  }}
+                >
+                  <Card className="dark:bg-black/40 bg-white/40 dark:text-white text-black border-black/10 dark:border-white/10 backdrop-blur-md p-2 overflow-hidden dark:hover:bg-white/5 transition-colors h-full w-full">
+                    {card.content ? card.content : (
+                      <CardHeader className="h-full flex flex-col justify-center">
+                        <CardTitle>{card.title}</CardTitle>
+                        <CardDescription>{card.desc}</CardDescription>
+                      </CardHeader>
+                    )}
+                  </Card>
+                </motion.div>
+              ))}
             </motion.div>
 
           </div>
