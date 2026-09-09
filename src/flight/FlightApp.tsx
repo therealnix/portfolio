@@ -124,11 +124,15 @@ export default function FlightApp() {
       {ARTICLE_SECTIONS.map((section, index) => <section key={section.id} id={section.id} ref={node => { if (node)
             sections.current[index] = node; }} className="article-section" data-shape={section.shape}>
         <h3>{section.title}</h3>
-        {section.track && <aside className="article-player" aria-label={`${section.id} on SoundCloud`}>
-          <iframe title={`${section.id} on SoundCloud`} width="100%" height="166" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={`https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${section.track}&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}/>
-          <a href={section.href} target="_blank" rel="noopener noreferrer">{section.id} · S0N!K ↗</a>
+        {section.tracks?.[0] && <aside className="article-player" aria-label={`${section.tracks[0].label} on SoundCloud`}>
+          <iframe title={`${section.tracks[0].label} on SoundCloud`} width="100%" height="120" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={`https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${section.tracks[0].id}&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}/>
+          <a href={section.tracks[0].href} target="_blank" rel="noopener noreferrer">{section.tracks[0].label} ↗</a>
         </aside>}
         {section.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
+        {section.tracks?.[1] && <aside className="article-player article-player--end" aria-label={`${section.tracks[1].label} on SoundCloud`}>
+          <iframe title={`${section.tracks[1].label} on SoundCloud`} width="100%" height="120" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={`https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${section.tracks[1].id}&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}/>
+          <a href={section.tracks[1].href} target="_blank" rel="noopener noreferrer">{section.tracks[1].label} ↗</a>
+        </aside>}
         {section.href && <a className="article-link" href={section.href} target="_blank" rel="noopener noreferrer">{section.linkLabel}<span aria-hidden="true">↗</span></a>}
       </section>)}
       <footer className="article-ending"><h3>There’s more to come.</h3><p>I’ll keep adding to this collection as the work develops. If something here resonates, or you’d like to talk about building something together, I’d be happy to hear from you.</p><a className="article-link" href="mailto:niklas@go-findus.tech">Say hello<span aria-hidden="true">↗</span></a><p className="article-last-line">For now, back to the mountains.</p></footer>

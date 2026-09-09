@@ -7,7 +7,7 @@ export interface ArticleSection {
     paragraphs: string[];
     href?: string;
     linkLabel?: string;
-    track?: string;
+    tracks?: { id: string; href: string; label: string }[];
 }
 export const ARTICLE_SECTIONS: ArticleSection[] = [
     {
@@ -32,15 +32,13 @@ export const ARTICLE_SECTIONS: ArticleSection[] = [
         ],
     },
     {
-        id: 'turntuppp', title: 'A different kind of building', shape: 'music', href: 'https://soundcloud.com/jigglniggl/turntuppp', linkLabel: 'Listen on SoundCloud', track: '2292371054',
+        id: 'music', title: 'A different kind of building', shape: 'music', href: 'https://soundcloud.com/jigglniggl/turntuppp', linkLabel: 'Listen on SoundCloud', tracks: [
+            { id: '2292371054', href: 'https://soundcloud.com/jigglniggl/turntuppp', label: 'turntuppp · S0N!K' },
+            { id: '2093814105', href: 'https://soundcloud.com/jigglniggl/lamp-rawmix1', label: 'Onedanceee · S0N!K' },
+        ],
         paragraphs: [
             "Away from webshops and interfaces, I make music as S0N!K. It gives me another way to experiment: starting with a small idea, trying different combinations, and listening for the moment when the pieces begin to work together. The process feels surprisingly close to making something on the web.",
             "turntuppp is one of the bootlegs on my SoundCloud. I’ve left the player here so you can take a break from reading and hear another side of what I make. There doesn’t need to be a grand explanation behind every project. Sometimes it’s enough to follow an idea because it sounds interesting.",
-        ],
-    },
-    {
-        id: 'onedanceee', title: 'Following a sound a little further', shape: 'headphones', href: 'https://soundcloud.com/jigglniggl/lamp-rawmix1', linkLabel: 'More from S0N!K', track: '2093814105',
-        paragraphs: [
             "Onedanceee is another piece from that part of my life. Working on music is a useful change of pace: a chance to pay attention to texture, timing, and the feeling of a transition instead of thinking about features and screens.",
             "I like having room for both kinds of work. Sometimes the most useful thing is to step away, listen to something new, and return with a different sense of rhythm. Those small shifts in perspective often find their way into whatever I build next.",
         ],

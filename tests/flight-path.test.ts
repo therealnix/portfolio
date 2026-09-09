@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import { circularDelta, getFlightFrame, getPresentation, photoOpacity, STATIONS, wrap } from '../src/flight/path.ts';
 import { photoDepth, photoPoint, PHOTO_TAN, PHOTO_ASPECT } from '../src/flight/photo-scene.ts';
 import { journeyAt, journeyMetrics, remapJourneyOffset, READING_CAMERA } from '../src/flight/journey.ts';
+import { ARTICLE_SECTIONS } from '../src/flight/article-content.ts';
+
+test('music is one particle stage with the two tracks at its boundaries', () => {
+    const musicSections = ARTICLE_SECTIONS.filter(section => section.shape === 'music');
+    assert.equal(musicSections.length, 1);
+    assert.equal(musicSections[0].tracks?.length, 2);
+    assert.ok(!ARTICLE_SECTIONS.some(section => section.shape === 'headphones'));
+});
 
 test('the camera holds still through the article body with short motion overlaps at either end', () => {
     for (const articleHeight of [1500, 4500, 9000]) {
