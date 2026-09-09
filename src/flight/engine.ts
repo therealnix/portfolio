@@ -149,7 +149,7 @@ export function createMountainFlight(options: FlightOptions) {
             const size = (width < 768 ? width * .64 : Math.min(width * .40, height * .47)) / 3;
             ctx.font = `900 ${size}px ${font}`;
             ctx.letterSpacing = `${-size * .065}px`;
-            ctx.fillText('HI!', width * .12, height * .32);
+            ctx.fillText('HI!', width * (width < 768 ? .12 : 1 / 3), height * .32);
             ctx.restore();
         }
         ctx.save();
