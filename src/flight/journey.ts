@@ -11,13 +11,18 @@ export function journeyAt(offset: number, metrics: JourneyMetrics) {
     const local = wrap(offset / metrics.length) * metrics.length;
     const readOffset = local - metrics.approach;
     const reading = readOffset >= 0 && readOffset <= metrics.reading;
-    const phase = local < metrics.approach
-        ? READING_CAMERA * smoothstep(0, metrics.approach, local)
-        : reading ? READING_CAMERA
-            : READING_CAMERA + (1 - READING_CAMERA) * smoothstep(0, metrics.departure, readOffset - metrics.reading);
+    const holdStart = metrics.approach + metrics.viewport * .9;
+    const holdEnd = metrics.approach + metrics.reading - metrics.viewport * .75;
+    const holding = local >= holdStart && local <= holdEnd;
+    const phase = local < holdStart
+        ? READING_CAMERA * smoothstep(0, holdStart, local)
+        : holding ? READING_CAMERA
+            : READING_CAMERA + (1 - READING_CAMERA) * smoothstep(holdEnd, metrics.length, local);
     const reveal = reading ? smoothstep(0, metrics.viewport * .65, readOffset)
         * (1 - smoothstep(metrics.reading - metrics.viewport * .8, metrics.reading, readOffset)) : 0;
-    return { local, phase: Math.min(phase, 1 - 1e-9), reading, readOffset, reveal };
+    const entrance = smoothstep(0, metrics.viewport * .65, readOffset);
+    const textOpacity = entrance * (1 - smoothstep(metrics.reading - metrics.viewport * .45, metrics.reading, readOffset));
+    return { local, phase: Math.min(phase, 1 - 1e-9), reading, holding, readOffset, reveal, entrance, textOpacity };
 }
 export function remapJourneyOffset(offset: number, before: JourneyMetrics, after: JourneyMetrics) {
     const state = journeyAt(offset, before);

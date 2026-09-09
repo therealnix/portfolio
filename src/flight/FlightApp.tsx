@@ -8,7 +8,7 @@ export default function FlightApp() {
     const root = useRef<HTMLElement>(null), host = useRef<HTMLDivElement>(null), particles = useRef<HTMLCanvasElement>(null);
     const photograph = useRef<HTMLDivElement>(null), intro = useRef<HTMLDivElement>(null), spacer = useRef<HTMLDivElement>(null);
     const article = useRef<HTMLElement>(null), sections = useRef<HTMLElement[]>([]);
-    const input = useRef({ phase: 0, reading: false, reduced: false, active: -1, reveal: 0, figureX: 0, figureY: 0, figureRadius: 80 });
+    const input = useRef({ phase: 0, reading: false, holding: false, reduced: false, active: -1, reveal: 0, figureX: 0, figureY: 0, figureRadius: 80 });
     const metrics = useRef<JourneyMetrics>(journeyMetrics(window.innerHeight, 4000));
     const [ready, setReady] = useState(false), [fallback, setFallback] = useState(false);
     const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -46,8 +46,11 @@ export default function FlightApp() {
             article.current!.inert = !state.reading;
             input.current.phase = state.phase;
             input.current.reading = state.reading;
+            input.current.holding = state.holding;
             input.current.reveal = state.reveal;
             root.current!.style.setProperty('--reading', String(state.reveal));
+            root.current!.style.setProperty('--article-opacity', String(state.textOpacity));
+            root.current!.style.setProperty('--article-offset', `${-24 * (1 - state.entrance)}px`);
             let active = -1;
             if (state.reading)
                 sections.current.forEach((section, index) => { if (section.getBoundingClientRect().top < window.innerHeight * .55)
@@ -108,7 +111,7 @@ export default function FlightApp() {
     <canvas ref={particles} className="flight-particles" aria-hidden="true"/>
     <div ref={intro} className="flight-intro">
       <h1 className="sr-only">Hi! I'm Niklas Kornev.</h1>
-      <button className="flight-begin" onClick={readArticle}><span>{ready ? 'SCROLL TO EXPLORE' : 'PREPARING THE VIEW'}</span><span aria-hidden="true">↓</span></button>
+      <button className="flight-begin" onClick={readArticle}><span>{ready ? 'get to kow me' : 'PREPARING THE VIEW'}</span><span aria-hidden="true">↓</span></button>
     </div>
     <article ref={article} className="portfolio-article" aria-labelledby="article-title">
       <header className="article-heading">

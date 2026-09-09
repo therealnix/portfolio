@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { circularDelta, getFlightFrame, getPresentation, wrap } from './path';
+import { circularDelta, clamp, getFlightFrame, getPresentation, wrap } from './path';
 import { createPhotoScene, photoPoint, PHOTO_ASPECT, PHOTO_TAN, HIKER_OUTLINE } from './photo-scene';
 import { createSketchPass } from './sketch-pass';
 import { READING_CAMERA } from './journey';
@@ -15,6 +15,7 @@ interface FlightOptions {
     input: {
         phase: number;
         reading: boolean;
+        holding: boolean;
         reduced: boolean;
         active: number;
         reveal: number;
@@ -45,6 +46,16 @@ export function createMountainFlight(options: FlightOptions) {
     const camera = new THREE.PerspectiveCamera(51, 1, .1, 2400);
     camera.zoom = 1.08;
     const font = getComputedStyle(document.body).fontFamily;
+    // A cached sprite avoids a separate shadow-blur pass for every point.
+    const ember = document.createElement('canvas');
+    ember.width = ember.height = 32;
+    const emberContext = ember.getContext('2d')!;
+    const halo = emberContext.createRadialGradient(16, 16, 0, 16, 16, 16);
+    halo.addColorStop(0, '#ffc48acc');
+    halo.addColorStop(.22, '#ff9b4f80');
+    halo.addColorStop(1, '#ff882000');
+    emberContext.fillStyle = halo;
+    emberContext.fillRect(0, 0, 32, 32);
     const palette = document.createElement('canvas');
     palette.width = 192;
     palette.height = 128;
@@ -66,7 +77,7 @@ export function createMountainFlight(options: FlightOptions) {
     let shapes: Partial<Record<ParticleShape, Point[]>> = {};
     void loadParticleShapes().then(value => { if (!disposed)
         shapes = value; });
-    const dots = Array.from({ length: 900 }, (_, i) => ({ seed: random(), index: i, x: 0, y: 0 }));
+    const dots = Array.from({ length: 600 }, (_, i) => ({ seed: random(), index: i, x: 0, y: 0 }));
     const ridges = RIDGES.map(points => new THREE.CatmullRomCurve3(points.map(([u, v]) => photoPoint(u, v))).getPoints(800));
     const people = HIKER_OUTLINE.map(([u, v]) => photoPoint(u, v, 22));
     const projected = new THREE.Vector3(), look = new THREE.Vector3();
@@ -116,8 +127,9 @@ export function createMountainFlight(options: FlightOptions) {
         last = now;
         if (!input.reduced)
             time += dt;
-        // During reading the camera is EXACTLY constant; scroll and pointer never influence it.
-        phase = input.reading ? READING_CAMERA : wrap(phase + circularDelta(phase, input.phase) * (1 - Math.exp(-dt * 5)));
+        // Settle gently while the introduction enters, then cache the central reading view.
+        const delta = circularDelta(phase, input.phase);
+        phase = input.holding && Math.abs(delta) < .00005 ? READING_CAMERA : wrap(phase + delta * (1 - Math.exp(-dt * 5)));
         const flight = getFlightFrame(phase), presentation = getPresentation(phase), sketch = input.reduced ? 0 : presentation.sketch;
         const hero = input.reduced || !loaded ? 1 : flight.photo, greeting = input.reduced ? 0 : presentation.greeting;
         camera.position.fromArray(flight.position);
@@ -127,7 +139,7 @@ export function createMountainFlight(options: FlightOptions) {
         camera.updateMatrixWorld();
         const sceneKey = `${phase.toFixed(7)}:${sketch.toFixed(7)}`;
         if (loaded && hero < .999 && !input.reduced && sceneKey !== lastSceneKey) {
-            const capture = width >= 768 && sketch > .001 && (!paletteReady || input.reading || now - lastPalette > 100);
+            const capture = width >= 768 && sketch > .001 && (!paletteReady || phase === READING_CAMERA || now - lastPalette > 100);
             sketchPass.render(world.scene, camera, sketch, capture ? captureColor : undefined);
             if (capture) lastPalette = now;
             lastSceneKey = sceneKey;
@@ -161,7 +173,9 @@ export function createMountainFlight(options: FlightOptions) {
             ctx.globalAlpha = (.15 + bucket * .10) * (1 - work) + (.38 + bucket * .18) * work;
             for (let i = bucket; i < count; i += 4) {
                 const dot = dots[i], ridge = ridges[i % ridges.length];
-                projected.copy(ridge[Math.floor(wrap(dot.seed + time * .007) * 800)]).project(camera);
+                // Stay near each point's original ridge position; never wrap from right to left.
+                const ridgePosition = clamp(dot.seed + Math.sin(time * .35 + dot.seed * 30) * .002);
+                projected.copy(ridge[Math.floor(ridgePosition * 800)]).project(camera);
                 let x = (projected.x * .5 + .5) * width, y = (-projected.y * .5 + .5) * height;
                 if (work > 0) {
                     const radius = input.figureRadius, theta = Math.acos(1 - 2 * dot.seed), phi = dot.index * 2.39996 + time * .16;
@@ -177,7 +191,7 @@ export function createMountainFlight(options: FlightOptions) {
                     x = x * (1 - work) + bx * work;
                     y = y * (1 - work) + by * work;
                 }
-                const ease = !dot.x ? 1 : 1 - Math.exp(-dt * 6);
+                const ease = !dot.x || work === 0 ? 1 : 1 - Math.exp(-dt * 6);
                 dot.x += (x - dot.x) * ease;
                 dot.y += (y - dot.y) * ease;
                 if (Math.abs(dot.x - width * .5) < width && Math.abs(dot.y - height * .5) < height) {
@@ -200,6 +214,20 @@ export function createMountainFlight(options: FlightOptions) {
             ctx.filter = `invert(${1 - sketch})`;
             ctx.drawImage(palette, 0, 0, width, height);
             ctx.restore();
+            if (work > .001) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.globalAlpha = work * .32;
+                ctx.fillStyle = '#ff9b50';
+                ctx.fillRect(0, 0, width, height);
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = work * .32;
+                for (let i = 0; i < count; i++) {
+                    const dot = dots[i];
+                    ctx.drawImage(ember, dot.x - 7, dot.y - 7, 14, 14);
+                }
+                ctx.restore();
+            }
         }
         if (!document.hidden)
             frameId = requestAnimationFrame(render);

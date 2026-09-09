@@ -4,15 +4,21 @@ import { circularDelta, getFlightFrame, getPresentation, photoOpacity, STATIONS,
 import { photoDepth, photoPoint, PHOTO_TAN, PHOTO_ASPECT } from '../src/flight/photo-scene.ts';
 import { journeyAt, journeyMetrics, remapJourneyOffset, READING_CAMERA } from '../src/flight/journey.ts';
 
-test('the camera holds exactly still until every line of the article clears the screen', () => {
+test('the camera holds still through the article body with short motion overlaps at either end', () => {
     for (const articleHeight of [1500, 4500, 9000]) {
         const m = journeyMetrics(900, articleHeight);
-        for (let offset = 1; offset < m.reading; offset += 17) {
+        for (let offset = m.viewport * .9; offset < m.reading - m.viewport * .75; offset += 17) {
             const state = journeyAt(m.approach + offset, m);
             assert.equal(state.reading, true);
             assert.equal(state.phase, READING_CAMERA);
         }
         assert.equal(m.reading, articleHeight + 900);
+        const entering = journeyAt(m.approach + 300, m);
+        assert.equal(entering.reading, true);
+        assert.ok(entering.textOpacity > 0 && entering.phase < READING_CAMERA);
+        const leaving = journeyAt(m.approach + m.reading - 300, m);
+        assert.equal(leaving.reading, true);
+        assert.ok(leaving.textOpacity > 0 && leaving.phase > READING_CAMERA);
         assert.ok(journeyAt(m.approach + m.reading + 50, m).phase > READING_CAMERA);
     }
 });
@@ -21,10 +27,10 @@ test('the earlier sketch transition joins the reading hold continuously', () => 
     const m = journeyMetrics(900, 4500);
     assert.equal(m.approach, 900 * 3.5);
     assert.equal(getPresentation(journeyAt(m.approach * .3, m).phase).sketch, 0);
-    assert.ok(getPresentation(journeyAt(m.approach * .5, m).phase).sketch > 0);
-    assert.ok(Math.abs(journeyAt(m.approach - .01, m).phase - READING_CAMERA) < 1e-8);
+    assert.ok(getPresentation(journeyAt(m.approach * .6, m).phase).sketch > 0);
+    assert.ok(Math.abs(journeyAt(m.approach + m.viewport * .9 - .01, m).phase - READING_CAMERA) < 1e-8);
     assert.equal(getPresentation(READING_CAMERA).sketch, 1);
-    assert.ok(Math.abs(journeyAt(m.approach + m.reading + .01, m).phase - READING_CAMERA) < 1e-8);
+    assert.ok(Math.abs(journeyAt(m.approach + m.reading - m.viewport * .75 + .01, m).phase - READING_CAMERA) < 1e-8);
     assert.ok(journeyAt(m.length - .01, m).phase > .99999);
     assert.equal(journeyAt(m.length, m).phase, 0);
 });

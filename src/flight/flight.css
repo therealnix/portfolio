@@ -14,6 +14,8 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .flight-begin > span:last-child { font-size:20px;font-weight:200; }
 .portfolio-article { position:absolute;z-index:5;left:clamp(320px,23vw,460px);width:min(560px,42vw);max-width:calc(100% - 240px);color:#252a28;font:19px/1.85 Georgia,'Times New Roman',serif;visibility:hidden;padding:0 0 100px; }
 .article-heading { margin-bottom:38px; }
+.portfolio-article { opacity:var(--article-opacity,0);transform:translateX(var(--article-offset,0px)); }
+.is-static .portfolio-article { opacity:1;transform:none; }
 .article-byline { font:11px var(--font-sans);letter-spacing:.035em;margin-bottom:22px !important; }
 .article-heading h2 { font:700 54px/1.06 Georgia,'Times New Roman',serif;letter-spacing:-.045em;margin:0 0 25px; }
 .portfolio-article .article-deck { font:20px/1.5 Georgia,serif;color:#565c57; }
