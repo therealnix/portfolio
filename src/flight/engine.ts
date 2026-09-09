@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { circularDelta, clamp, getFlightFrame, getPresentation, wrap } from './path';
+import { circularDelta, smoothstep, getFlightFrame, getPresentation, wrap } from './path';
 import { createPhotoScene, photoPoint, PHOTO_ASPECT, PHOTO_TAN, HIKER_OUTLINE } from './photo-scene';
 import { createSketchPass } from './sketch-pass';
 import { READING_CAMERA } from './journey';
@@ -67,7 +67,7 @@ export function createMountainFlight(options: FlightOptions) {
     let shapes: Partial<Record<ParticleShape, Point[]>> = {};
     void loadParticleShapes().then(value => { if (!disposed)
         shapes = value; });
-    const dots = Array.from({ length: 600 }, (_, i) => ({ seed: random(), index: i, x: 0, y: 0 }));
+    const dots = Array.from({ length: 600 }, (_, i) => ({ seed: random(), index: i, x: 0, y: 0, ridgePosition: 0 }));
     const ridges = RIDGES.map(points => new THREE.CatmullRomCurve3(points.map(([u, v]) => photoPoint(u, v))).getPoints(800));
     const people = HIKER_OUTLINE.map(([u, v]) => photoPoint(u, v, 22));
     const projected = new THREE.Vector3(), look = new THREE.Vector3();
@@ -160,11 +160,16 @@ export function createMountainFlight(options: FlightOptions) {
         const outline = shapes[ARTICLE_SECTIONS[input.active]?.shape];
         for (let bucket = 0; bucket < 4; bucket++) {
             ctx.beginPath();
-            ctx.globalAlpha = (.15 + bucket * .10) * (1 - work) + (.38 + bucket * .18) * work;
+            const alpha = (.15 + bucket * .10) * (1 - work) + (.38 + bucket * .18) * work;
+            ctx.globalAlpha = alpha;
             for (let i = bucket; i < count; i += 4) {
                 const dot = dots[i], ridge = ridges[i % ridges.length];
-                // Stay near each point's original ridge position; never wrap from right to left.
-                const ridgePosition = clamp(dot.seed + Math.sin(time * .35 + dot.seed * 30) * .002);
+                // Restore the original ridge flow, but recycle at the ends without interpolating across the image.
+                const ridgePosition = wrap(dot.seed + time * .007);
+                const recycled = ridgePosition < dot.ridgePosition;
+                dot.ridgePosition = ridgePosition;
+                const edgeOpacity = smoothstep(0, .025, ridgePosition) * (1 - smoothstep(.975, 1, ridgePosition));
+                const opacity = edgeOpacity * (1 - work) + work;
                 projected.copy(ridge[Math.floor(ridgePosition * 800)]).project(camera);
                 let x = (projected.x * .5 + .5) * width, y = (-projected.y * .5 + .5) * height;
                 if (work > 0) {
@@ -181,13 +186,22 @@ export function createMountainFlight(options: FlightOptions) {
                     x = x * (1 - work) + bx * work;
                     y = y * (1 - work) + by * work;
                 }
-                const ease = !dot.x || work === 0 ? 1 : 1 - Math.exp(-dt * 6);
+                const ease = !dot.x || work === 0 || (recycled && work < .99) ? 1 : 1 - Math.exp(-dt * 6);
                 dot.x += (x - dot.x) * ease;
                 dot.y += (y - dot.y) * ease;
                 if (Math.abs(dot.x - width * .5) < width && Math.abs(dot.y - height * .5) < height) {
                     const size = .95 + bucket * .30;
-                    ctx.moveTo(dot.x + size, dot.y);
-                    ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
+                    if (opacity < .999) {
+                        // Only the few fading endpoints need separate fills; keep the rest batched.
+                        const edge = new Path2D();
+                        edge.arc(dot.x, dot.y, size, 0, Math.PI * 2);
+                        ctx.globalAlpha = alpha * opacity;
+                        ctx.fill(edge);
+                        ctx.globalAlpha = alpha;
+                    } else {
+                        ctx.moveTo(dot.x + size, dot.y);
+                        ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
+                    }
                 }
             }
             ctx.fill();
