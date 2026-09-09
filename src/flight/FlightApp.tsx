@@ -6,6 +6,8 @@ import originalPhoto from '../assets/niklas-mountains.jpeg';
 import './flight.css';
 
 export default function FlightApp() {
+  const root = useRef<HTMLElement>(null);
+  const center = useRef<HTMLDivElement>(null);
   const host = useRef<HTMLDivElement>(null);
   const particles = useRef<HTMLCanvasElement>(null);
   const photograph = useRef<HTMLDivElement>(null);
@@ -14,13 +16,22 @@ export default function FlightApp() {
   const spacer = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<HTMLElement[]>([]);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const input = useRef({ phase: 0, reduced: false, paused: false, hovered: null as ParticleShape | null });
+  const input = useRef({ phase: 0, reduced: false, paused: false, hovered: null as ParticleShape | null, selected: -1 });
   const loopLength = useRef(1);
   const [stage, setStage] = useState(-1);
   const [ready, setReady] = useState(false);
   const [fallback, setFallback] = useState(false);
   const [motionEnabled, setMotionEnabled] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [dialog, setDialog] = useState<Station | 'index' | null>(null);
+  const [selected, setSelected] = useState(-1);
+
+  useEffect(() => { input.current.selected=selected; }, [selected]);
+  useEffect(() => {
+    const outside=(event:PointerEvent)=>{if(!(event.target instanceof Element)||!event.target.closest('.flight-station, .flight-dialog'))setSelected(-1);};
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setSelected(-1);};
+    window.addEventListener('pointerdown',outside);window.addEventListener('keydown',escape);
+    return()=>{window.removeEventListener('pointerdown',outside);window.removeEventListener('keydown',escape);};
+  },[]);
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
@@ -38,6 +49,7 @@ export default function FlightApp() {
       const length = loopLength.current;
       const y = window.scrollY;
       input.current.phase = wrap(y / length);
+      if(input.current.phase<.1||input.current.phase>.9)setSelected(-1);
       // Native wheel, keyboard and touch scrolling, rebased at identical loop frames.
       if (y < 2) window.scrollTo({ top: y + length, behavior: 'instant' });
       else if (y > length * 2 - 2) window.scrollTo({ top: y - length, behavior: 'instant' });
@@ -58,7 +70,7 @@ export default function FlightApp() {
     preference.addEventListener('change', change);
     return () => preference.removeEventListener('change', change);
   }, []);
-  useEffect(() => { input.current.reduced = !motionEnabled; }, [motionEnabled]);
+  useEffect(() => { input.current.reduced = !motionEnabled || fallback; }, [motionEnabled, fallback]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +78,7 @@ export default function FlightApp() {
     void import('./engine').then(({ createMountainFlight }) => {
       if (cancelled) return;
       dispose = createMountainFlight({
+        root:root.current!, center:center.current!,
         host: host.current!, particles: particles.current!, photograph: photograph.current!,
         intro: intro.current!, progress: progress.current!, cards: cardRefs.current,
         input: input.current, onStage: setStage, onReady: () => setReady(true), onError: () => setFallback(true),
@@ -90,6 +103,7 @@ export default function FlightApp() {
   }, [dialog]);
 
   const seek = (phase: number) => {
+    setSelected(-1);
     setDialog(null);
     input.current.paused = false;
     input.current.hovered = null;
@@ -99,7 +113,7 @@ export default function FlightApp() {
   const staticMode = fallback || !motionEnabled;
 
   return (
-    <main className={`mountain-flight ${staticMode ? 'is-static' : ''}`}>
+    <main ref={root} className={`mountain-flight ${staticMode ? 'is-static' : ''}`}>
       <div ref={spacer} aria-hidden="true" />
       <div ref={host} className="flight-world" aria-hidden="true" />
       <div ref={photograph} className="flight-photograph" aria-hidden="true">
@@ -114,26 +128,29 @@ export default function FlightApp() {
       </header>
 
       <div ref={intro} className="flight-intro">
-        <h1 className="sr-only">Hi. I'm Niklas Kornev.</h1>
-        <button className="flight-begin" onClick={() => staticMode ? setDialog('index') : seek(.2)}>
+        <h1 className="sr-only">Hi! I'm Niklas Kornev.</h1>
+        <button className="flight-begin" onClick={() => staticMode ? setDialog('index') : seek(.35)}>
           <span>{!ready ? 'PREPARING THE DESCENT' : staticMode ? 'EXPLORE THE PROJECTS' : 'SCROLL TO DESCEND'}</span>
           <span aria-hidden="true">↓</span>
         </button>
       </div>
 
+      <div ref={center} className="flight-work-center"><span>A FEW THINGS IN MY ORBIT</span><h2>Here's what I do.</h2><p>Explore a little.</p></div>
+
       <div className="flight-stations">
         {STATIONS.map((station, index) => (
-          <article key={station.id} ref={node => { if (node) cardRefs.current[index] = node; }} className="flight-station" aria-label={station.title}
+          <article key={station.id} ref={node => { if (node) cardRefs.current[index] = node; }} className={`flight-station ${selected===index?'is-selected':''}`} aria-label={station.title}
             onPointerEnter={() => { input.current.hovered = station.shape; }}
             onPointerLeave={() => { input.current.hovered = null; }}
             onFocusCapture={() => { input.current.hovered = station.shape; }}
             onBlurCapture={() => { input.current.hovered = null; }}>
-            <div className="station-kicker"><span>0{index + 1}</span><i />{station.category}</div>
-            <h2>{station.title}</h2>
-            <p>{station.description}</p>
-            {'track' in station || 'details' in station ? (
+            <button className="station-select" aria-pressed={selected===index} onClick={()=>setSelected(value=>value===index?-1:index)}>
+              <div className="station-kicker"><span>0{index + 1}</span><span className="station-category">{station.category}</span><span className="station-arrow">↗</span></div>
+              <h2>{station.title}</h2><p>{station.description}</p>
+            </button>
+            {selected===index && ('track' in station || 'details' in station ? (
               <button className="station-link" onClick={() => setDialog(station)}>{'track' in station ? 'Listen to the track' : 'A few favourites'} <span aria-hidden="true">↗</span></button>
-            ) : <a className="station-link" href={station.href} target="_blank" rel="noopener noreferrer">Explore the project <span aria-hidden="true">↗</span></a>}
+            ) : <a className="station-link" href={station.href} target="_blank" rel="noopener noreferrer">Explore the project <span aria-hidden="true">↗</span></a>)}
           </article>
         ))}
       </div>

@@ -7,6 +7,16 @@ export const wrap = (v: number) => ((v % 1) + 1) % 1;
 export const clamp = (v: number) => Math.max(0, Math.min(1, v));
 export const smoothstep = (a: number, b: number, v: number) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 export const circularDelta = (from: number, to: number) => wrap(to - from + 0.5) - 0.5;
+
+export function getPresentation(value: number) {
+    const phase = wrap(value);
+    return {
+        greeting: 1 - smoothstep(.06, .18, phase) + smoothstep(.90, .98, phase),
+        sketch: smoothstep(.12, .31, phase) * (1 - smoothstep(.82, .96, phase)),
+        work: smoothstep(.23, .32, phase) * (1 - smoothstep(.81, .90, phase)),
+        hud: smoothstep(.14, .25, phase) * (1 - smoothstep(.88, .96, phase)),
+    };
+}
 export const STATIONS = [
     { id: 'findus', title: 'Findus', category: 'BUILDING SOMETHING NEW', phase: 0.28, x: 5, z: -35, shape: 'findus', description: "What I'm currently working on. A new project, built with curiosity.", href: 'https://go-findus.tech' },
     { id: 'jost', title: 'Jost-Shop', category: 'CODE MEETS COMMERCE', phase: 0.38, x: -10, z: -78, shape: 'shop', description: 'A custom Shopify storefront with a Three.js homepage. Built to be explored.', href: 'https://jost-shop.com' },

@@ -1,7 +1,18 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { circularDelta, getFlightFrame, photoOpacity, STATIONS, wrap } from '../src/flight/path.ts';
+import { circularDelta, getFlightFrame, getPresentation, photoOpacity, STATIONS, wrap } from '../src/flight/path.ts';
 import { photoDepth, photoPoint, PHOTO_TAN, PHOTO_ASPECT } from '../src/flight/photo-scene.ts';
+test('the clean opening reconstructs exactly and the project view is fully sketch', () => {
+    assert.deepEqual(getPresentation(0), { greeting: 1, sketch: 0, work: 0, hud: 0 });
+    assert.deepEqual(getPresentation(1), getPresentation(0));
+    assert.equal(getPresentation(.5).sketch, 1);
+    assert.equal(getPresentation(.5).work, 1);
+    assert.equal(getPresentation(.5).greeting, 0);
+    assert.equal(getPresentation(.99).sketch, 0);
+    for (let i = 0; i < 1000; i++)
+        for (const opacity of Object.values(getPresentation(i / 1000)))
+            assert.ok(opacity >= 0 && opacity <= 1);
+});
 test('the loop returns to the exact starting camera and photograph', () => {
     assert.deepEqual(getFlightFrame(0), getFlightFrame(1));
     assert.deepEqual(getFlightFrame(-1), getFlightFrame(0));

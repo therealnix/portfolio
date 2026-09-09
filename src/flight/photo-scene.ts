@@ -22,6 +22,15 @@ const hikers = [
     [.252, 1], [.256, .946], [.263, .899], [.268, .864], [.276, .819], [.283, .786], [.284, .768], [.294, .733], [.303, .706], [.326, .678], [.335, .66], [.334, .634], [.341, .61], [.352, .597], [.369, .593], [.38, .601], [.386, .617], [.388, .633], [.38, .659], [.376, .676], [.391, .698], [.397, .721], [.412, .739], [.434, .725], [.455, .72], [.467, .708],
     [.465, .679], [.459, .661], [.456, .621], [.459, .581], [.466, .548], [.477, .513], [.495, .498], [.491, .482], [.5, .46], [.501, .42], [.507, .394], [.516, .377], [.527, .367], [.541, .368], [.551, .377], [.556, .39], [.559, .415], [.558, .444], [.555, .459], [.562, .477], [.565, .493], [.578, .502], [.587, .498], [.595, .502], [.594, .513], [.6, .537], [.604, .566], [.609, .612], [.606, .65], [.598, .68], [.595, .714], [.603, .748], [.616, .785], [.618, .832], [.622, .877], [.628, .909], [.638, .95], [.645, 1],
 ];
+export const HIKER_OUTLINE = hikers.map(([u, v]) => {
+    if (u < .335 && v > .67 && v < .8)
+        u -= .007;
+    if (u > .45 && u < .496 && v > .495 && v < .63)
+        u -= .008;
+    if (u > .575 && u < .612 && v > .5 && v < .66)
+        u += .004;
+    return [u, v];
+});
 export function createPhotoScene(renderer: THREE.WebGLRenderer) {
     const scene = new THREE.Scene();
     const resources: Array<{
@@ -78,17 +87,35 @@ export function createPhotoScene(renderer: THREE.WebGLRenderer) {
             geometry.computeBoundingSphere();
             scene.add(new THREE.Mesh(geometry, landscapeMaterial));
         }
-        const shape = new THREE.Shape(hikers.map(([u, v]) => new THREE.Vector2(u, 1 - v)));
-        const personGeometry = keep(new THREE.ShapeGeometry(shape));
+        // Retain the sunlit shoulder rims, then feather the mask in source-image pixels.
+        const outline = HIKER_OUTLINE;
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = 2048;
+        maskCanvas.height = 1152;
+        const mask = maskCanvas.getContext('2d')!;
+        mask.fillStyle = '#000';
+        mask.fillRect(0, 0, 2048, 1152);
+        mask.filter = 'blur(2px)';
+        mask.fillStyle = '#fff';
+        mask.strokeStyle = '#fff';
+        mask.lineWidth = 5;
+        mask.lineJoin = 'round';
+        mask.beginPath();
+        outline.forEach(([u, v], i) => i ? mask.lineTo(u * 2048, v * 1152) : mask.moveTo(u * 2048, v * 1152));
+        mask.closePath();
+        mask.fill();
+        mask.stroke();
+        const alpha = keep(new THREE.CanvasTexture(maskCanvas));
+        const personGeometry = keep(new THREE.PlaneGeometry(1, 1));
         const pos = personGeometry.attributes.position, uv = personGeometry.attributes.uv;
         for (let i = 0; i < pos.count; i++) {
-            const u = pos.getX(i), v = 1 - pos.getY(i);
+            const u = uv.getX(i), v = 1 - uv.getY(i);
             uv.setXY(i, u, 1 - v);
             const p = photoPoint(u, v, 22);
             pos.setXYZ(i, p.x, p.y, p.z);
         }
         personGeometry.computeBoundingSphere();
-        const people = new THREE.Mesh(personGeometry, keep(new THREE.MeshBasicMaterial({ map: original, side: THREE.DoubleSide, toneMapped: false })));
+        const people = new THREE.Mesh(personGeometry, keep(new THREE.MeshBasicMaterial({ map: original, alphaMap: alpha, transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false })));
         scene.add(people);
     });
     return { scene, ready, dispose: () => { disposed = true; resources.forEach(r => r.dispose()); } };
