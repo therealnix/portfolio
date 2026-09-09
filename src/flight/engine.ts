@@ -46,16 +46,6 @@ export function createMountainFlight(options: FlightOptions) {
     const camera = new THREE.PerspectiveCamera(51, 1, .1, 2400);
     camera.zoom = 1.08;
     const font = getComputedStyle(document.body).fontFamily;
-    // A cached sprite avoids a separate shadow-blur pass for every point.
-    const ember = document.createElement('canvas');
-    ember.width = ember.height = 32;
-    const emberContext = ember.getContext('2d')!;
-    const halo = emberContext.createRadialGradient(16, 16, 0, 16, 16, 16);
-    halo.addColorStop(0, '#ffc48acc');
-    halo.addColorStop(.22, '#ff9b4f80');
-    halo.addColorStop(1, '#ff882000');
-    emberContext.fillStyle = halo;
-    emberContext.fillRect(0, 0, 32, 32);
     const palette = document.createElement('canvas');
     palette.width = 192;
     palette.height = 128;
@@ -217,15 +207,9 @@ export function createMountainFlight(options: FlightOptions) {
             if (work > .001) {
                 ctx.save();
                 ctx.globalCompositeOperation = 'source-atop';
-                ctx.globalAlpha = work * .32;
+                ctx.globalAlpha = work;
                 ctx.fillStyle = '#ff9b50';
                 ctx.fillRect(0, 0, width, height);
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = work * .32;
-                for (let i = 0; i < count; i++) {
-                    const dot = dots[i];
-                    ctx.drawImage(ember, dot.x - 7, dot.y - 7, 14, 14);
-                }
                 ctx.restore();
             }
         }
