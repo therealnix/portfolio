@@ -160,7 +160,7 @@ export function createMountainFlight(options: FlightOptions) {
         const outline = shapes[ARTICLE_SECTIONS[input.active]?.shape];
         for (let bucket = 0; bucket < 4; bucket++) {
             ctx.beginPath();
-            const alpha = (.15 + bucket * .10) * (1 - work) + (.38 + bucket * .18) * work;
+            const alpha = (.15 + bucket * .10) * (1 - work) + work;
             ctx.globalAlpha = alpha;
             for (let i = bucket; i < count; i += 4) {
                 const dot = dots[i], ridge = ridges[i % ridges.length];
@@ -222,7 +222,7 @@ export function createMountainFlight(options: FlightOptions) {
                 ctx.save();
                 ctx.globalCompositeOperation = 'source-atop';
                 ctx.globalAlpha = work;
-                ctx.fillStyle = '#ff9b50';
+                ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, width, height);
                 ctx.restore();
             }
