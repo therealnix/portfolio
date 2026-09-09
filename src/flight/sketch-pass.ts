@@ -37,7 +37,7 @@ export function createSketchPass(renderer: THREE.WebGLRenderer) {
     const camera = new THREE.Camera();
     return {
         resize: (w: number, h: number) => { target.setSize(w, h); material.uniforms.pixel.value.set(1 / w, 1 / h); },
-        render: (world: THREE.Scene, view: THREE.Camera, amount: number) => {
+        render: (world: THREE.Scene, view: THREE.Camera, amount: number, captureColor?: (source: HTMLCanvasElement) => void) => {
             if (amount < .001) {
                 renderer.render(world, view);
                 return;
@@ -45,6 +45,12 @@ export function createSketchPass(renderer: THREE.WebGLRenderer) {
             renderer.setRenderTarget(target);
             renderer.render(world, view);
             renderer.setRenderTarget(null);
+            // Reuse the already rendered color texture for the particle palette.
+            if (captureColor) {
+                material.uniforms.amount.value = 0;
+                renderer.render(scene, camera);
+                captureColor(renderer.domElement);
+            }
             material.uniforms.amount.value = amount;
             renderer.render(scene, camera);
         },

@@ -1,7 +1,7 @@
 import { clamp, smoothstep, wrap } from './path.ts';
 export const READING_CAMERA = .48;
 export function journeyMetrics(viewport: number, articleHeight: number) {
-    const approach = viewport * 5;
+    const approach = viewport * 3.5;
     const reading = articleHeight + viewport;
     const departure = viewport * 3.5;
     return { viewport, articleHeight, approach, reading, departure, length: approach + reading + departure };

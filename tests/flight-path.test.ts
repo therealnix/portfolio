@@ -17,9 +17,11 @@ test('the camera holds exactly still until every line of the article clears the 
     }
 });
 
-test('the approach stays colorful longer and joins the reading hold continuously', () => {
+test('the earlier sketch transition joins the reading hold continuously', () => {
     const m = journeyMetrics(900, 4500);
-    assert.equal(getPresentation(journeyAt(m.approach * .5, m).phase).sketch, 0);
+    assert.equal(m.approach, 900 * 3.5);
+    assert.equal(getPresentation(journeyAt(m.approach * .3, m).phase).sketch, 0);
+    assert.ok(getPresentation(journeyAt(m.approach * .5, m).phase).sketch > 0);
     assert.ok(Math.abs(journeyAt(m.approach - .01, m).phase - READING_CAMERA) < 1e-8);
     assert.equal(getPresentation(READING_CAMERA).sketch, 1);
     assert.ok(Math.abs(journeyAt(m.approach + m.reading + .01, m).phase - READING_CAMERA) < 1e-8);

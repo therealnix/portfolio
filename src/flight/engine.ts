@@ -45,6 +45,15 @@ export function createMountainFlight(options: FlightOptions) {
     const camera = new THREE.PerspectiveCamera(51, 1, .1, 2400);
     camera.zoom = 1.08;
     const font = getComputedStyle(document.body).fontFamily;
+    const palette = document.createElement('canvas');
+    palette.width = 192;
+    palette.height = 128;
+    const paletteContext = palette.getContext('2d');
+    let paletteReady = false, lastPalette = -Infinity;
+    const captureColor = (source: HTMLCanvasElement) => {
+        paletteContext?.drawImage(source, 0, 0, palette.width, palette.height);
+        paletteReady = !!paletteContext;
+    };
     let disposed = false, loaded = false, width = 1, height = 1, frameId = 0, last = 0, time = 0, phase = 0, resting = false, lastSceneKey = '';
     void world.ready.then(() => { if (!disposed) {
         loaded = true;
@@ -64,6 +73,7 @@ export function createMountainFlight(options: FlightOptions) {
     const resize = () => {
         resting = false;
         lastSceneKey = '';
+        paletteReady = false;
         width = host.clientWidth;
         height = host.clientHeight;
         const dpr = Math.min(window.devicePixelRatio || 1, width < 768 ? 1.25 : 1.5);
@@ -117,7 +127,9 @@ export function createMountainFlight(options: FlightOptions) {
         camera.updateMatrixWorld();
         const sceneKey = `${phase.toFixed(7)}:${sketch.toFixed(7)}`;
         if (loaded && hero < .999 && !input.reduced && sceneKey !== lastSceneKey) {
-            sketchPass.render(world.scene, camera, sketch);
+            const capture = width >= 768 && sketch > .001 && (!paletteReady || input.reading || now - lastPalette > 100);
+            sketchPass.render(world.scene, camera, sketch, capture ? captureColor : undefined);
+            if (capture) lastPalette = now;
             lastSceneKey = sceneKey;
         }
         photograph.style.opacity = String(hero);
@@ -141,7 +153,8 @@ export function createMountainFlight(options: FlightOptions) {
         ctx.save();
         if (phase < .3 || phase > .9)
             maskPeople();
-        const count = width < 768 ? 550 : dots.length, work = input.reading ? input.reveal : 0;
+        // Keep the greeting on mobile, but skip every particle, including article figures.
+        const count = width < 768 ? 0 : dots.length, work = input.reading ? input.reveal : 0;
         const outline = shapes[ARTICLE_SECTIONS[input.active]?.shape];
         for (let bucket = 0; bucket < 4; bucket++) {
             ctx.beginPath();
@@ -168,7 +181,7 @@ export function createMountainFlight(options: FlightOptions) {
                 dot.x += (x - dot.x) * ease;
                 dot.y += (y - dot.y) * ease;
                 if (Math.abs(dot.x - width * .5) < width && Math.abs(dot.y - height * .5) < height) {
-                    const size = (.95 + bucket * .30) * (work && width < 768 ? .8 : 1);
+                    const size = .95 + bucket * .30;
                     ctx.moveTo(dot.x + size, dot.y);
                     ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
                 }
@@ -177,6 +190,17 @@ export function createMountainFlight(options: FlightOptions) {
         }
         ctx.restore();
         ctx.globalAlpha = 1;
+        const colored = width >= 768 && sketch > .001 && paletteReady;
+        canvas.style.mixBlendMode = colored ? 'normal' : 'difference';
+        if (colored) {
+            // The landscape loses its color while the points recover that same color.
+            // Source-in keeps the particle silhouettes and alpha; no per-pixel CPU readback.
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-in';
+            ctx.filter = `invert(${1 - sketch})`;
+            ctx.drawImage(palette, 0, 0, width, height);
+            ctx.restore();
+        }
         if (!document.hidden)
             frameId = requestAnimationFrame(render);
     };

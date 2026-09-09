@@ -7,12 +7,12 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .flight-photograph { z-index:1;overflow:hidden;will-change:opacity; }
 .flight-photograph img { width:100%;height:100%;object-fit:cover;object-position:center; }
 .flight-vignette { z-index:2;background:linear-gradient(180deg,#090b161a,transparent 25%,transparent 70%,#0a0b1240);opacity:calc(1 - var(--sketch)); }
-.article-veil { z-index:2;opacity:var(--reading);background:linear-gradient(90deg,#efefeb08 0%,#efefeb20 14%,#efefebba 29%,#efefebe8 39%,#efefebe8 61%,#efefebba 71%,#efefeb20 86%,#efefeb08 100%); }
+.article-veil { z-index:2;opacity:var(--reading);background:linear-gradient(90deg,#efefebc0 0%,#efefebe8 20%,#efefebef 43%,#efefebd9 57%,#efefeb40 72%,#efefeb00 85%); }
 .flight-particles { z-index:3;mix-blend-mode:difference; }
 .flight-intro { position:fixed;inset:0;z-index:4;pointer-events:none;color:#fff9ea; }
 .flight-begin { position:absolute;bottom:72px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:14px;font-size:8px;letter-spacing:.24em;cursor:pointer;padding:15px;pointer-events:auto; }
 .flight-begin > span:last-child { font-size:20px;font-weight:200; }
-.portfolio-article { position:absolute;z-index:5;left:50%;transform:translateX(-50%);width:600px;max-width:calc(100% - 240px);color:#252a28;font:19px/1.85 Georgia,'Times New Roman',serif;visibility:hidden;padding:0 0 100px; }
+.portfolio-article { position:absolute;z-index:5;left:clamp(320px,23vw,460px);width:min(560px,42vw);max-width:calc(100% - 240px);color:#252a28;font:19px/1.85 Georgia,'Times New Roman',serif;visibility:hidden;padding:0 0 100px; }
 .article-heading { margin-bottom:38px; }
 .article-byline { font:11px var(--font-sans);letter-spacing:.035em;margin-bottom:22px !important; }
 .article-heading h2 { font:700 54px/1.06 Georgia,'Times New Roman',serif;letter-spacing:-.045em;margin:0 0 25px; }
@@ -33,16 +33,17 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .is-static .article-veil { opacity:1; }
 .is-static .flight-photograph { opacity:1 !important; }
 @media(max-width:1279px) {
+  .portfolio-article { left:8%;width:52%; }
   .article-player { position:relative;inset:auto;width:100%;margin:0 0 30px; }
   .article-player > a { color:#59675d;text-shadow:none; }
 }
 @media(max-width:767px) {
-  .portfolio-article { left:22px;transform:none;width:calc(100% - 112px);max-width:none;font-size:17px;line-height:1.85; }
+  .portfolio-article { left:22px;width:calc(100% - 44px);max-width:none;font-size:17px;line-height:1.85; }
   .article-heading h2 { font-size:37px;line-height:1.1; }
   .portfolio-article .article-deck { font-size:18px; }
   .portfolio-article h3 { font-size:25px; }
   .article-section { margin-top:54px; }
-  .article-veil { background:linear-gradient(90deg,#efefebca 0%,#efefebea 12%,#efefebea 69%,#efefeb88 82%,#efefeb08 100%); }
+  .article-veil { background:linear-gradient(90deg,#efefebdf,#efefebef 35%,#efefebef 75%,#efefebdf); }
   .flight-begin { bottom:65px; }
   .article-ending { margin-top:60px; }
 }
