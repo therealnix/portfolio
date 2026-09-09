@@ -1,18 +1,39 @@
 import { useState, useEffect } from "react";
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion";
-import profilePic from "./assets/profile picture.jpeg";
+import type { ReactNode } from "react";
+import { motion, useScroll, useTransform, useSpring, useReducedMotion, useMotionValueEvent, AnimatePresence } from "framer-motion";
+import type { MotionStyle } from "framer-motion";
+import profilePic from "./assets/niklas-mountains.jpeg";
 import { FaInstagram, FaLinkedin, FaEnvelope, FaMoon, FaSun, FaChevronDown } from "react-icons/fa";
 import { Button } from "./components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "./components/ui/card";
-import ClickSpark from "./components/ui/ClickSpark";
+import ParticleGalaxy from "./components/ParticleGalaxy";
+import type { ParticleShape } from "./lib/particle-shapes";
+import "./artwork.css";
 
-// Easy to edit array for Section 3 Cards. 
+interface PortfolioCard {
+  title?: string;
+  desc?: string;
+  content?: ReactNode;
+  offsetDegrees: number;
+  radiusOffset: number;
+  shadowClass: string;
+  href?: string;
+  isModal?: boolean;
+  modalContent?: string;
+  shape: ParticleShape;
+  category: string;
+  label: string;
+  accent: string;
+}
+
+// Easy to edit array for the floating cards.
 // Adding or removing items will automatically recalculate their positions in the circle!
 // You can use `offsetDegrees` to add a bit of random displacement (e.g. -10 to 10 degrees).
 // You can use `radiusOffset` to push cards further in or out from the center circle (e.g. -5 to 5).
 // You can use `shadowClass` to simulate different floating heights (e.g. shadow-md, shadow-lg, shadow-xl, shadow-2xl).
-export const CARDS_DATA: any[] = [
+const CARDS_DATA: PortfolioCard[] = [
   { 
+    shape: "music", category: "SOUND / 01", label: "turntuppp", accent: "137, 96, 204",
     content: (
       <div className="w-full flex flex-col">
         <iframe className="dark:invert dark:hue-rotate-180 transition-[filter] duration-500 rounded-md" width="100%" height="110" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2292371054&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true"></iframe>
@@ -26,6 +47,7 @@ export const CARDS_DATA: any[] = [
     shadowClass: "shadow-xl"
   },
   { 
+    shape: "shop", category: "COMMERCE / 02", label: "Jost-Shop", accent: "188, 117, 54",
     title: "Jost-Shop", 
     desc: "A custom Three.js Shopify store I've built. Check it out!", 
     offsetDegrees: 5,
@@ -36,6 +58,7 @@ export const CARDS_DATA: any[] = [
     modalContent: "Jost-Shop is the first Shopify store I've built featuring an integrated three.js homepage and some fancy animations. Had a lot of fun on that one. Feel free to take a look :)"
   },
   { 
+    shape: "findus", category: "BUILDING / 03", label: "Findus", accent: "52, 151, 127",
     title: "Findus", 
     desc: "What I'm currently working on", 
     offsetDegrees: 0, 
@@ -46,6 +69,7 @@ export const CARDS_DATA: any[] = [
     modalContent: "Findus is an exciting new project I'm currently building. Stay tuned for more updates on this!"
   },
   { 
+    shape: "headphones", category: "SOUND / 04", label: "Onedanceee", accent: "137, 96, 204",
     content: (
       <div className="w-full flex flex-col">
         <iframe className="dark:invert dark:hue-rotate-180 transition-[filter] duration-500 rounded-md" width="100%" height="110" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A2093814105&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true"></iframe>
@@ -59,6 +83,7 @@ export const CARDS_DATA: any[] = [
     shadowClass: "shadow-2xl"
   },
   { 
+    shape: "spark", category: "OFF THE CLOCK / 05", label: "Cool things", accent: "181, 95, 146",
     title: "Cool things", 
     desc: "Some things I find cool", 
     offsetDegrees: -8, 
@@ -69,21 +94,36 @@ export const CARDS_DATA: any[] = [
   },
 
   { 
-    title: "My CV", 
-    desc: "Download my resume", 
+    shape: "modono", category: "ENGINEERING / 06", label: "Modono", accent: "76, 129, 194",
+    title: "Modono",
+    desc: "First hired engineer, building webshops for business clients.",
     offsetDegrees: -10, 
     radiusOffset: 0, 
     shadowClass: "shadow-lg",
     isModal: true,
-    modalContent: "Here you can download my CV to learn more about my experience and skills.",
-    download: true,
-    href: "/cv.pdf"
+    modalContent: "I'm the first hired engineer at Modono, where I build webshops for business clients.",
+    href: "https://mondono.eu"
   },
 ];
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<any>(null);
+  const [selectedCard, setSelectedCard] = useState<PortfolioCard | null>(null);
+  const [hoveredShape, setHoveredShape] = useState<ParticleShape | null>(null);
+  const [focusedShape, setFocusedShape] = useState<ParticleShape | null>(null);
+  const [touchShape, setTouchShape] = useState<ParticleShape | null>(null);
+  const [cardsActive, setCardsActive] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const reducedMotion = !!useReducedMotion();
+  const activeShape = cardsActive ? selectedCard?.shape ?? hoveredShape ?? focusedShape ?? touchShape : null;
+  const activeCard = CARDS_DATA.find(card => card.shape === activeShape);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -94,41 +134,47 @@ function App() {
   }, [isDarkMode]);
 
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
-  // We will use scrollYProgress (0 to 1) for consistent responsive animation pacing across the 3 sections.
+  // Scroll directly from the introduction into the floating cards.
   const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 150, damping: 25, restDelta: 0.001 });
+  const sceneProgress = reducedMotion ? scrollYProgress : smoothProgress;
+  useMotionValueEvent(sceneProgress, "change", value => {
+    const active = value > 0.55;
+    setCardsActive(previous => previous === active ? previous : active);
+    if (!active) {
+      setHoveredShape(null);
+      setFocusedShape(null);
+      setTouchShape(null);
+    }
+  });
+
+  useEffect(() => {
+    if (!selectedCard) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedCard(null);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [selectedCard]);
 
   // SECTION 1: Image & "Hi! I'm Nik"
-  const s1Scale = useTransform(smoothProgress, [0, 0.2, 0.4, 1], [1, 1, 0.85, 0.85]);
-  const s1Y = useTransform(smoothProgress, [0, 0.2, 0.4, 1], [0, 0, -80, -80]);
-  const s1Blur = useTransform(smoothProgress, [0, 0.2, 0.4, 1], ["blur(0px)", "blur(0px)", "blur(20px)", "blur(20px)"]);
-  const s1Opacity = useTransform(smoothProgress, [0, 0.2, 0.4, 1], [1, 1, 0, 0]);
+  const s1Scale = useTransform(smoothProgress, [0, 0.1, 0.5, 1], [1, 1, 0.85, 0.85]);
+  const s1Y = useTransform(smoothProgress, [0, 0.1, 0.5, 1], [0, 0, -80, -80]);
+  const s1Blur = useTransform(smoothProgress, [0, 0.1, 0.5, 1], ["blur(0px)", "blur(0px)", "blur(20px)", "blur(20px)"]);
+  const s1Opacity = useTransform(smoothProgress, [0, 0.1, 0.5, 1], [1, 1, 0, 0]);
   // Use display: none to force the browser to completely remove the layer after it fades out
-  const s1Display = useTransform(smoothProgress, (val) => (val > 0.45 ? "none" : "flex"));
+  const s1Display = useTransform(smoothProgress, (val) => (val > 0.55 ? "none" : "flex"));
 
-  // SECTION 2: Paragraph
-  const s2Opacity = useTransform(smoothProgress, [0, 0.25, 0.4, 0.55, 0.7, 1], [0, 0, 1, 1, 0, 0]);
-  const s2Y = useTransform(smoothProgress, [0, 0.25, 0.4, 0.55, 0.7, 1], [80, 80, 0, 0, -80, -80]);
-  const s2PointerEvents = useTransform(smoothProgress, (val) => (val > 0.35 && val < 0.65 ? "auto" : "none"));
-  const s2Display = useTransform(smoothProgress, (val) => (val > 0.75 ? "none" : "flex"));
-
-  // SECTION 3: What I Do
-  const s3Opacity = useTransform(smoothProgress, [0, 0.75, 0.9, 1], [0, 0, 1, 1]);
-  const s3Y = useTransform(smoothProgress, [0, 0.75, 0.9, 1], [80, 80, 0, 0]);
-  const s3PointerEvents = useTransform(smoothProgress, (val) => (val > 0.8 ? "auto" : "none"));
-  const s3CardsRotate = useTransform(smoothProgress, [0.75, 1], [90, 0]);
-  const s3CardsScale = useTransform(smoothProgress, [0.75, 1], [0.5, 1]);
-  const s3CardsCounterRotate = useTransform(s3CardsRotate, (val) => -val);
+  // SECTION 2: What I Do
+  const cardsOpacity = useTransform(smoothProgress, [0, 0.2, 0.65, 1], [0, 0, 1, 1]);
+  const cardsY = useTransform(smoothProgress, [0, 0.2, 0.65, 1], [80, 80, 0, 0]);
+  const cardsPointerEvents = useTransform(smoothProgress, (val) => (val > 0.55 ? "auto" : "none"));
+  const cardsRotate = useTransform(smoothProgress, [0.2, 1], [90, 0]);
+  const cardsScale = useTransform(smoothProgress, [0.2, 1], [0.5, 1]);
+  const cardsCounterRotate = useTransform(cardsRotate, (val) => -val);
 
   return (
-    <ClickSpark 
-      sparkColor={isDarkMode ? '#fff' : '#000'} 
-      sparkSize={12} 
-      sparkRadius={20} 
-      sparkCount={8} 
-      duration={600}
-    >
-      <div className="relative w-full dark:bg-black bg-white min-h-[300vh] font-sans transition-colors duration-500">
+      <div className="portfolio-artwork relative w-full min-h-[200vh] font-sans transition-colors duration-500">
       
       {/* Modal Overlay */}
       <AnimatePresence>
@@ -153,20 +199,12 @@ function App() {
                   <CardDescription className="text-lg mt-4">{selectedCard.modalContent}</CardDescription>
                 </CardHeader>
                 <div className="mt-8 flex justify-end gap-3">
-                  {selectedCard.href && !selectedCard.download && (
-                    <Button 
-                      variant="secondary"
-                      onClick={() => window.open(selectedCard.href.startsWith('http') ? selectedCard.href : `https://${selectedCard.href}`, '_blank')}
-                    >
-                      Check it out!
+                  {selectedCard.href && (
+                    <Button asChild variant="secondary">
+                      <a href={selectedCard.href} target="_blank" rel="noopener noreferrer">
+                        Check it out!
+                      </a>
                     </Button>
-                  )}
-                  {selectedCard.href && selectedCard.download && (
-                    <a href={selectedCard.href} download>
-                      <Button variant="secondary">
-                        Download CV
-                      </Button>
-                    </a>
                   )}
                   <Button onClick={() => setSelectedCard(null)}>Close</Button>
                 </div>
@@ -177,7 +215,12 @@ function App() {
       </AnimatePresence>
 
       {/* Background Layer */}
-      <div className="fixed inset-0 z-0 dark:bg-black bg-white transition-colors duration-500"></div>
+      <div className="artwork-background fixed inset-0 z-0" />
+      <ParticleGalaxy progress={sceneProgress} shape={activeShape} dark={isDarkMode} reducedMotion={reducedMotion} />
+      <div className="edition-header" aria-hidden="true">
+        <span>NIKLAS KORNEV<span className="edition-dot">.</span></span>
+        <span>WORK, PLAY & A LITTLE CURIOSITY</span>
+      </div>
 
       {/* Foreground Content Layer */}
       {/* Container is fixed so it stays in viewport while we scroll the body */}
@@ -185,15 +228,15 @@ function App() {
         
         {/* ================= SECTION 1: Image & Greeting ================= */}
         <motion.div 
-          style={{ y: s1Y, scale: s1Scale, filter: s1Blur, opacity: s1Opacity, display: s1Display }}
+          style={{ y: reducedMotion ? 0 : s1Y, scale: reducedMotion ? 1 : s1Scale, filter: reducedMotion ? 'none' : s1Blur, opacity: s1Opacity, display: s1Display }}
           className="absolute items-center justify-center w-full h-full"
         >
           {/* Relative wrapper sets the size of the image so text can be positioned relative to its edges */}
-          <div className="relative @container w-[60vw] h-auto md:w-auto md:h-[60vh] aspect-[4/5]">
+          <div className="hero-photo relative @container w-[60vw] h-auto md:w-auto md:h-[60vh] aspect-[4/5]">
             
             {/* The Image (has overflow-hidden for rounded corners) */}
-            <div className="absolute inset-0 rounded-[2rem] overflow-hidden shadow-2xl brightness-75">
-              <img src={profilePic} alt="Profile" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 rounded-[2rem] overflow-hidden shadow-2xl">
+              <img src={profilePic} alt="Niklas in the mountains at sunrise" className="w-full h-full object-cover object-[54%_center]" />
             </div>
 
             {/* The Text Layer (Mix Blend Difference to invert image) */}
@@ -228,7 +271,7 @@ function App() {
             className="absolute bottom-[13vh] flex flex-col items-center"
           >
             <motion.div
-              animate={{ y: [0, 10, 0, 10, 0, 0] }}
+              animate={{ y: reducedMotion ? 0 : [0, 10, 0, 10, 0, 0] }}
               transition={{ 
                 repeat: Infinity, 
                 duration: 4, 
@@ -241,42 +284,37 @@ function App() {
           </motion.div>
         </motion.div>
 
-        {/* ================= SECTION 2: Paragraph ================= */}
+        {/* ================= SECTION 2: What I Do ================= */}
         <motion.div 
-          style={{ opacity: s2Opacity, y: s2Y, pointerEvents: s2PointerEvents, display: s2Display }}
-          className="absolute flex flex-col items-start justify-center w-[90%] md:w-[50vw]"
-        >
-          <p className="text-xl md:text-2xl font-medium dark:text-white text-black leading-relaxed text-left">
-            I'm Nik. <br/>
-            I currently study Datascience at HM and BMW. Apart from that I'd like to build something sick.<br/>
-            If that sounds good to you, <br/> 
-            <a 
-              href="https://www.linkedin.com/in/niklas-kornev-ba268133a/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="dark:text-white text-black hover:opacity-80 underline decoration-2 underline-offset-4 transition-opacity mt-2 inline-block font-bold"
-            >
-              hit me up :)
-            </a>
-          </p>
-        </motion.div>
-
-        {/* ================= SECTION 3: What I Do ================= */}
-        <motion.div 
-          style={{ opacity: s3Opacity, y: s3Y, pointerEvents: s3PointerEvents }}
+          style={{ opacity: cardsOpacity, y: reducedMotion ? 0 : cardsY, pointerEvents: cardsPointerEvents }}
           className="absolute inset-0 flex items-center justify-center w-full h-full"
         >
-          <div className="relative w-full h-full max-w-6xl mx-auto flex items-center justify-center mb-[30px]">
+          <div className="orbit-layout relative w-full h-full max-w-6xl mx-auto flex items-center justify-center mb-[30px]" inert={!cardsActive}>
             
             {/* Desktop Center Text */}
-            <p className="hidden md:block text-xl md:text-2xl font-medium dark:text-white text-black leading-relaxed text-center px-4 z-10">
-              Here's what I do
-            </p>
+            <div className="orbit-center" aria-live="polite">
+              <motion.div aria-hidden={!!activeShape} animate={{ opacity: activeShape ? 0 : 1, scale: activeShape ? 0.94 : 1 }} transition={{ duration: reducedMotion ? 0 : 0.3 }}>
+                <span className="orbit-eyebrow">A FEW THINGS IN MY ORBIT</span>
+                <h2>Here's what I do</h2>
+                <p>Explore a little.</p>
+              </motion.div>
+            </div>
+            <div className="orbit-caption">
+              <AnimatePresence mode="wait">
+                {activeCard && (
+                  <motion.div key={activeCard.shape} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} transition={{ duration: reducedMotion ? 0 : 0.2 }}>
+                    <span className="orbit-eyebrow">{activeCard.category}</span>
+                    <p>{activeCard.label}</p>
+                    {touchShape && <button className="back-to-orbit" type="button" onClick={() => { setTouchShape(null); setFocusedShape(null); }}>Back to orbit ↺</button>}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             
-            {/* Desktop: Floating Cards Spinning Container */}
+            {/* One responsive card list keeps the same SoundCloud instances alive. */}
             <motion.div 
-              style={{ rotate: s3CardsRotate, scale: s3CardsScale }} 
-              className="hidden md:block absolute inset-0 w-full h-full"
+              style={{ rotate: isMobile || reducedMotion ? 0 : cardsRotate, scale: isMobile || reducedMotion ? 1 : cardsScale }}
+              className="orbit-cards hide-scrollbar"
             >
               {CARDS_DATA.map((card, index) => {
                 // Calculate position along an ellipse with a slight random displacement
@@ -291,24 +329,40 @@ function App() {
 
                 return (
                   <motion.div 
-                    key={index}
+                    key={card.shape}
                     style={{ 
-                      left, 
-                      top, 
-                      x: "-50%", 
-                      y: "-50%",
-                      rotate: s3CardsCounterRotate 
-                    }} 
-                    whileHover={{ scale: 1.1, zIndex: 50 }} 
-                    className={`absolute w-56 md:w-64 cursor-pointer rounded-xl ${card.shadowClass || 'shadow-xl'} hover:shadow-none transition-shadow duration-300`}
+                      left: isMobile ? 'auto' : left,
+                      top: isMobile ? 'auto' : top,
+                      x: isMobile ? 0 : "-50%",
+                      y: isMobile ? 0 : "-50%",
+                      rotate: isMobile || reducedMotion ? 0 : cardsCounterRotate,
+                      '--card-accent': card.accent,
+                    } as MotionStyle}
+                    whileHover={reducedMotion || isMobile ? undefined : { scale: 1.035, zIndex: 50, rotateX: 2, rotateY: -3 }}
+                    className={`orbit-card cursor-pointer rounded-xl ${activeShape === card.shape ? 'is-active' : ''}`}
+                    data-shape={card.shape}
+                    role={card.isModal ? "button" : "group"}
+                    aria-label={card.label}
+                    tabIndex={0}
+                    onPointerEnter={event => { if (event.pointerType === 'mouse') setHoveredShape(card.shape); else setTouchShape(card.shape); }}
+                    onPointerLeave={() => setHoveredShape(null)}
+                    onFocusCapture={event => { if (event.target.matches(':focus-visible')) setFocusedShape(card.shape); }}
+                    onPointerDown={event => { setFocusedShape(null); if (event.pointerType !== 'mouse') setTouchShape(card.shape); }}
+                    onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocusedShape(null); }}
+                    onKeyDown={event => {
+                      if (event.target === event.currentTarget && card.isModal && (event.key === 'Enter' || event.key === ' ')) {
+                        event.preventDefault(); setSelectedCard(card);
+                      }
+                    }}
                     onClick={() => {
                       if (card.isModal) setSelectedCard(card);
                       else if (card.href) window.open(card.href, '_blank');
                     }}
                   >
-                    <Card className="dark:bg-black/40 bg-white/40 dark:text-white text-black border-black/10 dark:border-white/10 backdrop-blur-md p-2 overflow-hidden dark:hover:bg-white/5 transition-colors h-full">
+                    <Card className="orbit-card-surface h-full">
+                      <div className="card-meta"><span><i />{card.category}</span><span aria-hidden="true">{card.content ? '♫' : '↗'}</span></div>
                       {card.content ? card.content : (
-                        <CardHeader className="h-full flex flex-col justify-center">
+                        <CardHeader className="flex flex-col justify-center">
                           <CardTitle>{card.title}</CardTitle>
                           <CardDescription>{card.desc}</CardDescription>
                         </CardHeader>
@@ -319,51 +373,13 @@ function App() {
               })}
             </motion.div>
 
-            {/* Mobile: Vertical Stack */}
-            <motion.div
-              style={{ scale: s3CardsScale }}
-              className="md:hidden absolute inset-0 w-full h-full flex flex-col items-center gap-6 px-4 pt-[15vh] pb-32 overflow-y-auto pointer-events-auto hide-scrollbar"
-            >
-              <motion.p 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="text-xl font-medium dark:text-white text-black leading-relaxed text-center shrink-0 mt-[10vh] mb-4"
-              >
-                Here's what I do
-              </motion.p>
-              {CARDS_DATA.map((card, index) => (
-                <motion.div 
-                  key={`mobile-${index}`}
-                  initial={{ opacity: 0, y: 50 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  className={`w-full max-w-sm shrink-0 cursor-pointer rounded-xl ${card.shadowClass || 'shadow-xl'} transition-shadow duration-300`}
-                  onClick={() => {
-                    if (card.isModal) setSelectedCard(card);
-                    else if (card.href) window.open(card.href, '_blank');
-                  }}
-                >
-                  <Card className="dark:bg-black/40 bg-white/40 dark:text-white text-black border-black/10 dark:border-white/10 backdrop-blur-md p-2 overflow-hidden dark:hover:bg-white/5 transition-colors h-full w-full">
-                    {card.content ? card.content : (
-                      <CardHeader className="h-full flex flex-col justify-center">
-                        <CardTitle>{card.title}</CardTitle>
-                        <CardDescription>{card.desc}</CardDescription>
-                      </CardHeader>
-                    )}
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
-
           </div>
         </motion.div>
 
 
 
         {/* Action Buttons / Footer (Always visible) */}
-        <div className="absolute bottom-8 left-0 w-full flex items-center justify-center gap-6 pointer-events-auto z-50">
+        <div className="social-dock absolute bottom-8 flex items-center justify-center gap-6 pointer-events-auto z-50">
           <a 
             href="https://instagram.com/s0nik.wav" 
             target="_blank" 
@@ -385,7 +401,7 @@ function App() {
           </a>
 
           <a 
-            href="mailto:niklaskornev@gmx.net"
+            href="mailto:niklas@go-findus.tech"
             className="dark:text-white/60 text-black/60 dark:hover:text-white hover:text-black transition-transform hover:scale-110 duration-300"
             aria-label="Email"
           >
@@ -409,7 +425,6 @@ function App() {
         
       </div>
     </div>
-    </ClickSpark>
   );
 }
 
