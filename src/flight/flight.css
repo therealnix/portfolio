@@ -5,7 +5,7 @@ body.flight-mode::-webkit-scrollbar { display: none; }
 .flight-world { z-index: 0; }
 .flight-world canvas { display: block; width: 100%; height: 100%; }
 .flight-photograph { z-index: 1; overflow: hidden; will-change: opacity, transform; }
-.flight-photograph img { width: 100%; height: 100%; object-fit: cover; object-position: 54% center; }
+.flight-photograph img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .flight-vignette { z-index: 2; background: linear-gradient(180deg, #090b161f, transparent 20%, transparent 70%, #0a0b1280); }
 .flight-particles { z-index: 3; mix-blend-mode: difference; }
 .flight-header, .flight-footer { position: fixed; z-index: 20; left: 36px; right: 36px; display: flex; justify-content: space-between; align-items: center; }
