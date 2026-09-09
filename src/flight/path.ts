@@ -12,8 +12,8 @@ export function getPresentation(value: number) {
     const phase = wrap(value);
     return {
         greeting: 1 - smoothstep(.06, .18, phase) + smoothstep(.90, .98, phase),
-        sketch: smoothstep(.12, .31, phase) * (1 - smoothstep(.82, .96, phase)),
-        work: smoothstep(.23, .32, phase) * (1 - smoothstep(.81, .90, phase)),
+        sketch: smoothstep(.29, .47, phase) * (1 - smoothstep(.82, .96, phase)),
+        work: smoothstep(.45, .48, phase) * (1 - smoothstep(.81, .90, phase)),
         hud: smoothstep(.14, .25, phase) * (1 - smoothstep(.88, .96, phase)),
     };
 }

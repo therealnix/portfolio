@@ -1,188 +1,134 @@
 import { useEffect, useRef, useState } from 'react';
-import { STATIONS, wrap } from './path';
-import type { Station } from './path';
-import type { ParticleShape } from '../lib/particle-shapes';
+import { ARTICLE_SECTIONS } from './article-content';
+import { journeyAt, journeyMetrics, remapJourneyOffset } from './journey';
+import type { JourneyMetrics } from './journey';
 import originalPhoto from '../assets/niklas-mountains.jpeg';
 import './flight.css';
-
 export default function FlightApp() {
-  const root = useRef<HTMLElement>(null);
-  const center = useRef<HTMLDivElement>(null);
-  const host = useRef<HTMLDivElement>(null);
-  const particles = useRef<HTMLCanvasElement>(null);
-  const photograph = useRef<HTMLDivElement>(null);
-  const intro = useRef<HTMLDivElement>(null);
-  const progress = useRef<HTMLDivElement>(null);
-  const spacer = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<HTMLElement[]>([]);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const input = useRef({ phase: 0, reduced: false, paused: false, hovered: null as ParticleShape | null, selected: -1 });
-  const loopLength = useRef(1);
-  const [stage, setStage] = useState(-1);
-  const [ready, setReady] = useState(false);
-  const [fallback, setFallback] = useState(false);
-  const [motionEnabled, setMotionEnabled] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const [dialog, setDialog] = useState<Station | 'index' | null>(null);
-  const [selected, setSelected] = useState(-1);
-
-  useEffect(() => { input.current.selected=selected; }, [selected]);
-  useEffect(() => {
-    const outside=(event:PointerEvent)=>{if(!(event.target instanceof Element)||!event.target.closest('.flight-station, .flight-dialog'))setSelected(-1);};
-    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setSelected(-1);};
-    window.addEventListener('pointerdown',outside);window.addEventListener('keydown',escape);
-    return()=>{window.removeEventListener('pointerdown',outside);window.removeEventListener('keydown',escape);};
-  },[]);
-
-  useEffect(() => {
-    document.documentElement.classList.remove('dark');
-    document.body.classList.add('flight-mode');
-    const previousRestoration = history.scrollRestoration;
-    history.scrollRestoration = 'manual';
-    const resize = () => {
-      loopLength.current = window.innerHeight * 12;
-      spacer.current!.style.height = `${loopLength.current * 2 + window.innerHeight}px`;
-      window.scrollTo({ top: loopLength.current * (1 + input.current.phase), behavior: 'instant' });
+    const root = useRef<HTMLElement>(null), host = useRef<HTMLDivElement>(null), particles = useRef<HTMLCanvasElement>(null);
+    const photograph = useRef<HTMLDivElement>(null), intro = useRef<HTMLDivElement>(null), spacer = useRef<HTMLDivElement>(null);
+    const article = useRef<HTMLElement>(null), sections = useRef<HTMLElement[]>([]);
+    const input = useRef({ phase: 0, reading: false, reduced: false, active: -1, reveal: 0, figureX: 0, figureY: 0, figureRadius: 80 });
+    const metrics = useRef<JourneyMetrics>(journeyMetrics(window.innerHeight, 4000));
+    const [ready, setReady] = useState(false), [fallback, setFallback] = useState(false);
+    const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const staticMode = reduced || fallback;
+    useEffect(() => {
+        const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const update = () => setReduced(preference.matches);
+        preference.addEventListener('change', update);
+        return () => preference.removeEventListener('change', update);
+    }, []);
+    useEffect(() => { input.current.reduced = staticMode; }, [staticMode]);
+    useEffect(() => {
+        document.body.classList.add('flight-mode');
+        document.documentElement.classList.remove('dark');
+        const previous = history.scrollRestoration;
+        history.scrollRestoration = 'manual';
+        let initialized = false, cycle = 1;
+        const update = () => {
+            if (staticMode)
+                return;
+            const m = metrics.current;
+            let y = window.scrollY;
+            if (y < 2) {
+                y += m.length;
+                window.scrollTo({ top: y, behavior: 'instant' });
+            }
+            else if (y > m.length * 2 - 2) {
+                y -= m.length;
+                window.scrollTo({ top: y, behavior: 'instant' });
+            }
+            cycle = Math.floor(y / m.length);
+            const state = journeyAt(y, m);
+            article.current!.style.top = `${cycle * m.length + m.approach + m.viewport}px`;
+            article.current!.style.visibility = state.reading ? 'visible' : 'hidden';
+            article.current!.inert = !state.reading;
+            input.current.phase = state.phase;
+            input.current.reading = state.reading;
+            input.current.reveal = state.reveal;
+            root.current!.style.setProperty('--reading', String(state.reveal));
+            let active = -1;
+            if (state.reading)
+                sections.current.forEach((section, index) => { if (section.getBoundingClientRect().top < window.innerHeight * .55)
+                    active = index; });
+            input.current.active = active;
+        };
+        const resize = () => {
+            if (staticMode) {
+                article.current!.style.top = '';
+                article.current!.style.visibility = 'visible';
+                article.current!.inert = false;
+                return;
+            }
+            const before = metrics.current, next = journeyMetrics(window.innerHeight, article.current!.offsetHeight);
+            const offset = initialized ? remapJourneyOffset(window.scrollY, before, next) : 0;
+            metrics.current = next;
+            spacer.current!.style.height = `${next.length * 2 + next.viewport}px`;
+            article.current!.style.top = `${next.length + next.approach + next.viewport}px`;
+            const box = article.current!.getBoundingClientRect(), available = window.innerWidth - box.right;
+            input.current.figureX = box.right + available * .52;
+            input.current.figureY = window.innerHeight * .46;
+            input.current.figureRadius = Math.min(115, available * .35, window.innerHeight * .17);
+            initialized = true;
+            window.scrollTo({ top: next.length + offset, behavior: 'instant' });
+            update();
+        };
+        resize();
+        if (staticMode)
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        const observer = new ResizeObserver(resize);
+        observer.observe(article.current!);
+        window.addEventListener('resize', resize);
+        window.addEventListener('scroll', update, { passive: true });
+        return () => { observer.disconnect(); window.removeEventListener('resize', resize); window.removeEventListener('scroll', update); document.body.classList.remove('flight-mode'); history.scrollRestoration = previous; };
+    }, [staticMode]);
+    useEffect(() => {
+        let cancelled = false, dispose: (() => void) | undefined;
+        void import('./engine').then(({ createMountainFlight }) => {
+            if (cancelled)
+                return;
+            dispose = createMountainFlight({ root: root.current!, host: host.current!, particles: particles.current!, photograph: photograph.current!, intro: intro.current!, input: input.current, onReady: () => setReady(true), onError: () => setFallback(true) });
+        }).catch(() => { if (!cancelled) {
+            setFallback(true);
+            setReady(true);
+        } });
+        return () => { cancelled = true; dispose?.(); };
+    }, []);
+    const readArticle = () => {
+        const m = metrics.current;
+        window.scrollTo({ top: m.length + m.approach + m.viewport * .8, behavior: 'smooth' });
     };
-    resize();
-    const scroll = () => {
-      if (input.current.paused) return;
-      const length = loopLength.current;
-      const y = window.scrollY;
-      input.current.phase = wrap(y / length);
-      if(input.current.phase<.1||input.current.phase>.9)setSelected(-1);
-      // Native wheel, keyboard and touch scrolling, rebased at identical loop frames.
-      if (y < 2) window.scrollTo({ top: y + length, behavior: 'instant' });
-      else if (y > length * 2 - 2) window.scrollTo({ top: y - length, behavior: 'instant' });
-    };
-    window.addEventListener('scroll', scroll, { passive: true });
-    window.addEventListener('resize', resize);
-    return () => {
-      window.removeEventListener('scroll', scroll);
-      window.removeEventListener('resize', resize);
-      document.body.classList.remove('flight-mode');
-      history.scrollRestoration = previousRestoration;
-    };
-  }, []);
-
-  useEffect(() => {
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const change = () => setMotionEnabled(!preference.matches);
-    preference.addEventListener('change', change);
-    return () => preference.removeEventListener('change', change);
-  }, []);
-  useEffect(() => { input.current.reduced = !motionEnabled || fallback; }, [motionEnabled, fallback]);
-
-  useEffect(() => {
-    let cancelled = false;
-    let dispose: (() => void) | undefined;
-    void import('./engine').then(({ createMountainFlight }) => {
-      if (cancelled) return;
-      dispose = createMountainFlight({
-        root:root.current!, center:center.current!,
-        host: host.current!, particles: particles.current!, photograph: photograph.current!,
-        intro: intro.current!, progress: progress.current!, cards: cardRefs.current,
-        input: input.current, onStage: setStage, onReady: () => setReady(true), onError: () => setFallback(true),
-      });
-    }).catch(error => {
-      if (cancelled) return;
-      console.warn('Mountain flight unavailable; showing the project index.', error);
-      setFallback(true); setReady(true);
-    });
-    return () => { cancelled = true; dispose?.(); };
-  }, []);
-
-  useEffect(() => {
-    const controls = input.current;
-    controls.paused = dialog !== null;
-    const node = dialogRef.current;
-    if (dialog && node && !node.open) node.showModal();
-    if (!dialog && node?.open) node.close();
-    const previous = document.body.style.overflow;
-    if (dialog) document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previous; controls.paused = false; };
-  }, [dialog]);
-
-  const seek = (phase: number) => {
-    setSelected(-1);
-    setDialog(null);
-    input.current.paused = false;
-    input.current.hovered = null;
-    input.current.phase = phase;
-    window.scrollTo({ top: loopLength.current * (1 + phase), behavior: 'instant' });
-  };
-  const staticMode = fallback || !motionEnabled;
-
-  return (
-    <main ref={root} className={`mountain-flight ${staticMode ? 'is-static' : ''}`}>
-      <div ref={spacer} aria-hidden="true" />
-      <div ref={host} className="flight-world" aria-hidden="true" />
-      <div ref={photograph} className="flight-photograph" aria-hidden="true">
-        <img src="/flight/mountain-upscaled.webp" alt="" fetchPriority="high" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = originalPhoto; }} />
-      </div>
-      <div className="flight-vignette" aria-hidden="true" />
-      <canvas ref={particles} className="flight-particles" aria-hidden="true" />
-
-      <header className="flight-header">
-        <button className="flight-wordmark" onClick={() => seek(0)} aria-label="Return to the opening view">NIKLAS KORNEV<span>✳</span></button>
-        <div className="flight-header-right"><span>A LITTLE FURTHER.</span><button onClick={() => setDialog('index')}>INDEX <span aria-hidden="true">↗</span></button></div>
+    return <main ref={root} className={`mountain-flight ${staticMode ? 'is-static' : ''}`}>
+    <div ref={spacer} aria-hidden="true"/>
+    <div ref={host} className="flight-world" aria-hidden="true"/>
+    <div ref={photograph} className="flight-photograph" aria-hidden="true"><img src="/flight/mountain-upscaled.webp" alt="" fetchPriority="high" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = originalPhoto; }}/></div>
+    <div className="flight-vignette" aria-hidden="true"/>
+    <div className="article-veil" aria-hidden="true"/>
+    <canvas ref={particles} className="flight-particles" aria-hidden="true"/>
+    <div ref={intro} className="flight-intro">
+      <h1 className="sr-only">Hi! I'm Niklas Kornev.</h1>
+      <button className="flight-begin" onClick={readArticle}><span>{ready ? 'SCROLL TO EXPLORE' : 'PREPARING THE VIEW'}</span><span aria-hidden="true">↓</span></button>
+    </div>
+    <article ref={article} className="portfolio-article" aria-labelledby="article-title">
+      <header className="article-heading">
+        <p className="article-byline">Niklas Kornev</p>
+        <h2 id="article-title">A few things<br />I’ve been making.</h2>
+        <p className="article-deck">On building things for the web, making music, and staying curious along the way.</p>
       </header>
-
-      <div ref={intro} className="flight-intro">
-        <h1 className="sr-only">Hi! I'm Niklas Kornev.</h1>
-        <button className="flight-begin" onClick={() => staticMode ? setDialog('index') : seek(.35)}>
-          <span>{!ready ? 'PREPARING THE DESCENT' : staticMode ? 'EXPLORE THE PROJECTS' : 'SCROLL TO DESCEND'}</span>
-          <span aria-hidden="true">↓</span>
-        </button>
-      </div>
-
-      <div ref={center} className="flight-work-center"><span>A FEW THINGS IN MY ORBIT</span><h2>Here's what I do.</h2><p>Explore a little.</p></div>
-
-      <div className="flight-stations">
-        {STATIONS.map((station, index) => (
-          <article key={station.id} ref={node => { if (node) cardRefs.current[index] = node; }} className={`flight-station ${selected===index?'is-selected':''}`} aria-label={station.title}
-            onPointerEnter={() => { input.current.hovered = station.shape; }}
-            onPointerLeave={() => { input.current.hovered = null; }}
-            onFocusCapture={() => { input.current.hovered = station.shape; }}
-            onBlurCapture={() => { input.current.hovered = null; }}>
-            <button className="station-select" aria-pressed={selected===index} onClick={()=>setSelected(value=>value===index?-1:index)}>
-              <div className="station-kicker"><span>0{index + 1}</span><span className="station-category">{station.category}</span><span className="station-arrow">↗</span></div>
-              <h2>{station.title}</h2><p>{station.description}</p>
-            </button>
-            {selected===index && ('track' in station || 'details' in station ? (
-              <button className="station-link" onClick={() => setDialog(station)}>{'track' in station ? 'Listen to the track' : 'A few favourites'} <span aria-hidden="true">↗</span></button>
-            ) : <a className="station-link" href={station.href} target="_blank" rel="noopener noreferrer">Explore the project <span aria-hidden="true">↗</span></a>)}
-          </article>
-        ))}
-      </div>
-
-      {staticMode && <section className="flight-static-index" aria-label="Projects">
-        <span className="station-kicker">TAKE THE SCENIC ROUTE</span><h2>A few things I make.</h2>
-        {STATIONS.map((station, index) => <button key={station.id} onClick={() => setDialog(station)}><small>0{index + 1}</small>{station.title}<span>↗</span></button>)}
-      </section>}
-
-      <footer className="flight-footer">
-        <a href="mailto:niklas@go-findus.tech" className="flight-contact">SAY HELLO <span aria-hidden="true">↗</span></a>
-        <div ref={progress} className="flight-route" aria-label="Journey navigation">
-          <div className="route-line"><i /></div>
-          {STATIONS.map((station, index) => <button key={station.id} className={stage === index ? 'is-current' : ''} aria-label={`Go to ${station.title}`} aria-current={stage === index ? 'step' : undefined} onClick={() => staticMode ? setDialog(station) : seek(station.phase)}><span /><small>0{index + 1}</small></button>)}
-        </div>
-        <button className="motion-toggle" onClick={() => setMotionEnabled(value => !value)} aria-pressed={motionEnabled}>MOTION {motionEnabled ? 'ON' : 'OFF'}<i /></button>
-      </footer>
-      <div className="flight-chapter" aria-live="polite">{stage >= 0 ? `0${stage + 1} / ${STATIONS[stage].title}` : 'THE LONG WAY HOME'}</div>
-
-      <dialog ref={dialogRef} className="flight-dialog" onClose={() => setDialog(null)} onClick={event => { if (event.target === event.currentTarget) setDialog(null); }} aria-labelledby="flight-dialog-title">
-        <button className="dialog-close" aria-label="Close" onClick={() => setDialog(null)}>✕</button>
-        {dialog === 'index' ? <>
-          <span className="station-kicker">SIX STOPS. ONE WAY BACK.</span><h2 id="flight-dialog-title">Pick a trail.</h2>
-          <nav className="flight-index-links">{STATIONS.map((station, index) => <button key={station.id} onClick={() => staticMode ? setDialog(station) : seek(station.phase)}><small>0{index + 1}</small><span>{station.title}</span><span>↗</span></button>)}</nav>
-          <a className="classic-link" href="?view=galaxy">View the galaxy version ↗</a>
-        </> : dialog && <>
-          <span className="station-kicker">{dialog.category}</span><h2 id="flight-dialog-title">{dialog.title}</h2>
-          <p>{'details' in dialog ? dialog.details : dialog.description}</p>
-          {'track' in dialog && <iframe title={`${dialog.title} on SoundCloud`} width="100%" height="166" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={`https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${dialog.track}&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`} />}
-          {dialog.href && <a className="station-link" href={dialog.href} target="_blank" rel="noopener noreferrer">{'track' in dialog ? 'Open SoundCloud' : 'Visit the website'} ↗</a>}
-        </>}
-      </dialog>
-    </main>
-  );
+      <p>I’m Niklas. This is a small introduction to the things I spend my time on: the projects I’m building, the work I do with other people, and the ideas I follow outside of it. Think of it as a little more context to go with my CV.</p>
+      <p>I like work that lets me move between the practical and the creative. Sometimes that means getting the details of a webshop right. Sometimes it means experimenting with an interaction or following a sound until it becomes a track.</p>
+      {ARTICLE_SECTIONS.map((section, index) => <section key={section.id} id={section.id} ref={node => { if (node)
+            sections.current[index] = node; }} className="article-section" data-shape={section.shape}>
+        <h3>{section.title}</h3>
+        {section.track && <aside className="article-player" aria-label={`${section.id} on SoundCloud`}>
+          <iframe title={`${section.id} on SoundCloud`} width="100%" height="166" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={`https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${section.track}&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}/>
+          <a href={section.href} target="_blank" rel="noopener noreferrer">{section.id} · S0N!K ↗</a>
+        </aside>}
+        {section.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
+        {section.href && <a className="article-link" href={section.href} target="_blank" rel="noopener noreferrer">{section.linkLabel}<span aria-hidden="true">↗</span></a>}
+      </section>)}
+      <footer className="article-ending"><h3>There’s more to come.</h3><p>I’ll keep adding to this collection as the work develops. If something here resonates, or you’d like to talk about building something together, I’d be happy to hear from you.</p><a className="article-link" href="mailto:niklas@go-findus.tech">Say hello<span aria-hidden="true">↗</span></a><p className="article-last-line">For now, back to the mountains.</p></footer>
+    </article>
+  </main>;
 }

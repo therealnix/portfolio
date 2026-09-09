@@ -2,6 +2,42 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { circularDelta, getFlightFrame, getPresentation, photoOpacity, STATIONS, wrap } from '../src/flight/path.ts';
 import { photoDepth, photoPoint, PHOTO_TAN, PHOTO_ASPECT } from '../src/flight/photo-scene.ts';
+import { journeyAt, journeyMetrics, remapJourneyOffset, READING_CAMERA } from '../src/flight/journey.ts';
+
+test('the camera holds exactly still until every line of the article clears the screen', () => {
+    for (const articleHeight of [1500, 4500, 9000]) {
+        const m = journeyMetrics(900, articleHeight);
+        for (let offset = 1; offset < m.reading; offset += 17) {
+            const state = journeyAt(m.approach + offset, m);
+            assert.equal(state.reading, true);
+            assert.equal(state.phase, READING_CAMERA);
+        }
+        assert.equal(m.reading, articleHeight + 900);
+        assert.ok(journeyAt(m.approach + m.reading + 50, m).phase > READING_CAMERA);
+    }
+});
+
+test('the approach stays colorful longer and joins the reading hold continuously', () => {
+    const m = journeyMetrics(900, 4500);
+    assert.equal(getPresentation(journeyAt(m.approach * .5, m).phase).sketch, 0);
+    assert.ok(Math.abs(journeyAt(m.approach - .01, m).phase - READING_CAMERA) < 1e-8);
+    assert.equal(getPresentation(READING_CAMERA).sketch, 1);
+    assert.ok(Math.abs(journeyAt(m.approach + m.reading + .01, m).phase - READING_CAMERA) < 1e-8);
+    assert.ok(journeyAt(m.length - .01, m).phase > .99999);
+    assert.equal(journeyAt(m.length, m).phase, 0);
+});
+
+test('resizing preserves progress within the article and on both flight legs', () => {
+    const before = journeyMetrics(900, 4500), after = journeyMetrics(700, 8000);
+    for (const fraction of [.1, .5, .9]) {
+        const reading = journeyAt(remapJourneyOffset(before.length + before.approach + before.reading * fraction, before, after), after);
+        assert.equal(reading.phase, READING_CAMERA);
+        assert.ok(Math.abs(reading.readOffset / after.reading - fraction) < 1e-10);
+        assert.ok(Math.abs(remapJourneyOffset(before.approach * fraction, before, after) / after.approach - fraction) < 1e-10);
+        const exit = remapJourneyOffset(before.approach + before.reading + before.departure * fraction, before, after);
+        assert.ok(Math.abs((exit - after.approach - after.reading) / after.departure - fraction) < 1e-10);
+    }
+});
 test('the clean opening reconstructs exactly and the project view is fully sketch', () => {
     assert.deepEqual(getPresentation(0), { greeting: 1, sketch: 0, work: 0, hud: 0 });
     assert.deepEqual(getPresentation(1), getPresentation(0));
