@@ -1,6 +1,6 @@
 import mascotOutline from '../assets/findus-outline.json';
 
-export type ParticleShape = 'findus' | 'shop' | 'music' | 'headphones' | 'spark' | 'modono';
+export type ParticleShape = 'findus' | 'shop' | 'music' | 'headphones' | 'spark' | 'modono' | 'linkedin' | 'email' | 'soundcloud';
 export type Point = [number, number];
 
 // These paths are sampled into points; no solid icons are rendered in the scene.
@@ -10,6 +10,9 @@ const outlines: Record<Exclude<ParticleShape, 'findus'>, string> = {
   headphones: 'M45 158 V112 C45 11 211 11 211 112 V158 M45 117 H66 V190 H45 Q30 190 30 171 V139 Q30 117 45 117 M211 117 H190 V190 H211 Q226 190 226 171 V139 Q226 117 211 117 M91 124 V167 M110 100 V187 M129 114 V174 M148 96 V191 M167 128 V161',
   spark: 'M128 27 C138 94 162 116 227 128 C162 140 138 162 128 229 C116 162 94 140 29 128 C94 116 116 94 128 27 Z M210 22 V62 M190 42 H230 M44 199 V229 M29 214 H59',
   modono: 'M51 87 H205 L219 216 H37 Z M89 100 V68 C89 16 167 16 167 68 V100 M83 177 V128 L128 164 L173 128 V177',
+  linkedin: 'M41 34 H215 V222 H41 Z M76 101 V184 M76 72 V76 M106 184 V101 H132 V112 C144 94 182 97 182 129 V184 M132 132 V184',
+  email: 'M35 65 H221 V193 H35 Z M35 68 L128 143 L221 68 M35 190 L101 132 M221 190 L155 132',
+  soundcloud: 'M36 170 H69 V113 H84 V170 H97 V95 H112 V170 H126 V80 H142 V170 H158 V110 C217 96 239 137 218 165 C207 180 190 170 190 170 H158',
 };
 
 function normalize(points: Point[]): Point[] {

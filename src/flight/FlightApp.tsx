@@ -7,8 +7,8 @@ import './flight.css';
 export default function FlightApp() {
     const root = useRef<HTMLElement>(null), host = useRef<HTMLDivElement>(null), particles = useRef<HTMLCanvasElement>(null);
     const photograph = useRef<HTMLDivElement>(null), intro = useRef<HTMLDivElement>(null), spacer = useRef<HTMLDivElement>(null);
-    const article = useRef<HTMLElement>(null), sections = useRef<HTMLElement[]>([]);
-    const input = useRef({ phase: 0, reading: false, holding: false, reduced: false, active: -1, reveal: 0, figureX: 0, figureY: 0, figureRadius: 80 });
+    const article = useRef<HTMLElement>(null), contactLinks = useRef<HTMLElement>(null), sections = useRef<HTMLElement[]>([]);
+    const input = useRef({ phase: 0, reading: false, holding: false, reduced: false, active: -1, reveal: 0, contact: 0, contactStage: -1, figureX: 0, figureY: 0, figureRadius: 80 });
     const metrics = useRef<JourneyMetrics>(journeyMetrics(window.innerHeight, 4000));
     const [ready, setReady] = useState(false), [fallback, setFallback] = useState(false);
     const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -48,7 +48,11 @@ export default function FlightApp() {
             input.current.reading = state.reading;
             input.current.holding = state.holding;
             input.current.reveal = state.reveal;
+            input.current.contact = state.contact;
+            input.current.contactStage = state.contactStage;
             root.current!.style.setProperty('--reading', String(state.reveal));
+            root.current!.style.setProperty('--contact', String(state.contact));
+            contactLinks.current!.inert = state.contact < .02;
             root.current!.style.setProperty('--article-opacity', String(state.textOpacity));
             root.current!.style.setProperty('--article-offset', `${-24 * (1 - state.entrance)}px`);
             let active = -1;
@@ -73,6 +77,8 @@ export default function FlightApp() {
             input.current.figureX = box.right + available * .52;
             input.current.figureY = window.innerHeight * .46;
             input.current.figureRadius = Math.min(115, available * .35, window.innerHeight * .17);
+            root.current!.style.setProperty('--figure-x', `${input.current.figureX}px`);
+            root.current!.style.setProperty('--figure-y', `${input.current.figureY}px`);
             initialized = true;
             window.scrollTo({ top: next.length + offset, behavior: 'instant' });
             update();
@@ -109,6 +115,11 @@ export default function FlightApp() {
     <div className="flight-vignette" aria-hidden="true"/>
     <div className="article-veil" aria-hidden="true"/>
     <canvas ref={particles} className="flight-particles" aria-hidden="true"/>
+    <nav ref={contactLinks} className="contact-links" aria-label="Get in touch" inert>
+      <a href="https://www.linkedin.com/in/niklas-kornev-ba268133a/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="mailto:niklas@go-findus.tech">Email</a>
+      <a href="https://soundcloud.com/jigglniggl" target="_blank" rel="noopener noreferrer">SoundCloud</a>
+    </nav>
     <div ref={intro} className="flight-intro">
       <h1 className="sr-only">Hi! I'm Niklas Kornev.</h1>
       <button className="flight-begin" onClick={readArticle}><span>{ready ? 'get to kow me' : 'PREPARING THE VIEW'}</span><span aria-hidden="true">↓</span></button>

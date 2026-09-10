@@ -12,6 +12,15 @@ test('music is one particle stage with the two tracks at its boundaries', () => 
     assert.ok(!ARTICLE_SECTIONS.some(section => section.shape === 'headphones'));
 });
 
+test('the return begins with a three-part contact particle stage after the article', () => {
+    const m = journeyMetrics(900, 4500), start = m.approach + m.reading;
+    assert.equal(journeyAt(start, m).contact, 0);
+    assert.equal(journeyAt(start + m.departure * .12, m).contactStage, 0);
+    assert.equal(journeyAt(start + m.departure * .28, m).contactStage, 1);
+    assert.equal(journeyAt(start + m.departure * .5, m).contactStage, 2);
+    assert.equal(journeyAt(start + m.departure * .9, m).contact, 0);
+});
+
 test('the camera holds still through the article body with short motion overlaps at either end', () => {
     for (const articleHeight of [1500, 4500, 9000]) {
         const m = journeyMetrics(900, articleHeight);

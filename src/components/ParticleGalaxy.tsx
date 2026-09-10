@@ -13,7 +13,7 @@ interface Props {
 const TAU = Math.PI * 2;
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
-const hues: Record<ParticleShape, number> = { findus: 160, shop: 28, music: 270, headphones: 270, spark: 320, modono: 215 };
+const hues: Record<ParticleShape, number> = { findus: 160, shop: 28, music: 270, headphones: 270, spark: 320, modono: 215, linkedin: 210, email: 42, soundcloud: 18 };
 
 export default function ParticleGalaxy({ progress, shape, dark, reducedMotion }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);

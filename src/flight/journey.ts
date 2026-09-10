@@ -22,7 +22,12 @@ export function journeyAt(offset: number, metrics: JourneyMetrics) {
         * (1 - smoothstep(metrics.reading - metrics.viewport * .8, metrics.reading, readOffset)) : 0;
     const entrance = smoothstep(0, metrics.viewport * .65, readOffset);
     const textOpacity = entrance * (1 - smoothstep(metrics.reading - metrics.viewport * .45, metrics.reading, readOffset));
-    return { local, phase: Math.min(phase, 1 - 1e-9), reading, holding, readOffset, reveal, entrance, textOpacity };
+    const contactStart = metrics.approach + metrics.reading;
+    const contactDuration = metrics.departure * .62;
+    const contactRaw = clamp((local - contactStart) / contactDuration);
+    const contact = local > contactStart ? smoothstep(0, .12, contactRaw) * (1 - smoothstep(.82, 1, contactRaw)) : 0;
+    const contactStage = contact ? Math.min(2, Math.floor(contactRaw * 3)) : -1;
+    return { local, phase: Math.min(phase, 1 - 1e-9), reading, holding, readOffset, reveal, entrance, textOpacity, contact, contactStage };
 }
 export function remapJourneyOffset(offset: number, before: JourneyMetrics, after: JourneyMetrics) {
     const state = journeyAt(offset, before);

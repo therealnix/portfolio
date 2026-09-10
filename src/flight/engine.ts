@@ -19,6 +19,8 @@ interface FlightOptions {
         reduced: boolean;
         active: number;
         reveal: number;
+        contact: number;
+        contactStage: number;
         figureX: number;
         figureY: number;
         figureRadius: number;
@@ -156,8 +158,11 @@ export function createMountainFlight(options: FlightOptions) {
         if (phase < .3 || phase > .9)
             maskPeople();
         // Keep the greeting on mobile, but skip every particle, including article figures.
-        const count = width < 768 ? 0 : dots.length, work = input.reading ? input.reveal : 0;
-        const outline = shapes[ARTICLE_SECTIONS[input.active]?.shape];
+        const count = width < 768 ? 0 : dots.length;
+        const work = input.reading ? input.reveal : input.contact;
+        const contactShapes: ParticleShape[] = ['linkedin', 'email', 'soundcloud'];
+        const shape = input.contact > 0 ? contactShapes[input.contactStage] : ARTICLE_SECTIONS[input.active]?.shape;
+        const outline = shapes[shape];
         for (let bucket = 0; bucket < 4; bucket++) {
             ctx.beginPath();
             const alpha = (.15 + bucket * .10) * (1 - work) + work;
