@@ -20,6 +20,8 @@ interface FlightOptions {
         active: number;
         reveal: number;
         contact: number;
+        contactHover: number;
+        contactFocus: number;
         figureX: number;
         figureY: number;
         figureRadius: number;
@@ -69,6 +71,7 @@ export function createMountainFlight(options: FlightOptions) {
     void loadParticleShapes().then(value => { if (!disposed)
         shapes = value; });
     const dots = Array.from({ length: 600 }, (_, i) => ({ seed: random(), index: i, x: 0, y: 0, ridgePosition: 0 }));
+    const contactResponse = [0, 0, 0];
     const ridges = RIDGES.map(points => new THREE.CatmullRomCurve3(points.map(([u, v]) => photoPoint(u, v))).getPoints(800));
     const people = HIKER_OUTLINE.map(([u, v]) => photoPoint(u, v, 22));
     const projected = new THREE.Vector3(), look = new THREE.Vector3();
@@ -161,6 +164,11 @@ export function createMountainFlight(options: FlightOptions) {
         const count = width < 768 || work <= .001 ? 0 : dots.length;
         const contactShapes: ParticleShape[] = ['linkedin', 'email', 'soundcloud'];
         const contactWidth = Math.min(720, width * .8);
+        const selectedContact = input.contactHover >= 0 ? input.contactHover : input.contactFocus;
+        contactResponse.forEach((value, index) => {
+            const target = input.contact >= .8 && selectedContact === index ? 1 : 0;
+            contactResponse[index] = value + (target - value) * (1 - Math.exp(-dt * 7));
+        });
         const articleOutline = shapes[ARTICLE_SECTIONS[input.active]?.shape];
         for (let bucket = 0; bucket < 4; bucket++) {
             ctx.beginPath();
@@ -182,7 +190,8 @@ export function createMountainFlight(options: FlightOptions) {
                     const outline = isContact ? shapes[contactShapes[contactIndex]] : articleOutline;
                     const centerX = isContact ? width * .5 + (contactIndex - 1) * contactWidth / 3 : input.figureX;
                     const centerY = isContact ? height * .46 : input.figureY;
-                    const radius = isContact ? Math.min(88, contactWidth / 8) : input.figureRadius;
+                    // Optical sizing balances the square mark against the wider envelope and cloud.
+                    const radius = isContact ? Math.min(62, contactWidth / 10) * [.83, 1, 1.08][contactIndex] : input.figureRadius;
                     const theta = Math.acos(1 - 2 * dot.seed), phi = dot.index * 2.39996 + time * .16;
                     const r = radius * (1 + .14 * Math.sin(theta * 4 + time * .8) * Math.cos(phi * 3 - time * .3));
                     const perspective = 500 / (500 - Math.sin(theta) * Math.sin(phi) * r);
@@ -190,9 +199,11 @@ export function createMountainFlight(options: FlightOptions) {
                     if (outline?.length) {
                         const sample = isContact ? Math.floor(i / 3) / Math.ceil(count / 3) : dot.seed;
                         const point = outline[Math.floor(sample * outline.length)];
-                        const breathe = 1 + .018 * Math.sin(time * .85);
-                        bx = centerX + point[0] * radius * .8 * breathe + Math.sin(time * 1.2 + dot.seed * 25) * 1.3;
-                        by = centerY + point[1] * radius * .8 * breathe + Math.cos(time + dot.seed * 31) * 1.3;
+                        const response = isContact ? contactResponse[contactIndex] : 0;
+                        const breathe = 1 + .018 * Math.sin(time * .85) + response * .08;
+                        const ripple = response * 2.4 * Math.sin(time * 3 + dot.seed * 18);
+                        bx = centerX + point[0] * (radius * .8 * breathe + ripple) + Math.sin(time * 1.2 + dot.seed * 25) * 1.3;
+                        by = centerY + point[1] * (radius * .8 * breathe + ripple) + Math.cos(time + dot.seed * 31) * 1.3 - response * 4;
                     }
                     x = x * (1 - work) + bx * work;
                     y = y * (1 - work) + by * work;
