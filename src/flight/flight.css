@@ -9,9 +9,12 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .flight-vignette { z-index:2;background:linear-gradient(180deg,#090b161a,transparent 25%,transparent 70%,#0a0b1240);opacity:calc(1 - var(--sketch)); }
 .article-veil { z-index:2;opacity:var(--reading);background:linear-gradient(90deg,#efefebc0 0%,#efefebe8 20%,#efefebef 43%,#efefebd9 57%,#efefeb40 72%,#efefeb00 85%); }
 .flight-particles { z-index:3;mix-blend-mode:difference; }
-.contact-links { position:fixed;z-index:4;left:calc(var(--figure-x, 1100px) - 115px);top:calc(var(--figure-y, 420px) + 145px);display:flex;gap:18px;pointer-events:none;opacity:var(--contact);transform:translateY(calc((1 - var(--contact)) * 12px));transition:opacity .16s linear,transform .16s linear; }
-.contact-links a { pointer-events:auto;color:#f8f8f4;font:10px var(--font-sans);letter-spacing:.05em;text-decoration:none;border-bottom:1px solid #f8f8f466;padding-bottom:4px; }
-.contact-links a:hover { border-color:currentColor; }
+.contact-links { position:fixed;z-index:4;left:50%;top:calc(46vh - 100px);width:min(720px,80vw);height:200px;display:grid;grid-template-columns:repeat(3,1fr);opacity:var(--contact);visibility:hidden;transform:translateX(-50%);color:#fff; }
+.contact-links h2 { position:absolute;bottom:calc(100% + 28px);width:100%;margin:0;text-align:center;font:400 30px/1.2 Georgia,serif;letter-spacing:-.025em; }
+.contact-links a { display:flex;align-items:flex-end;justify-content:center;padding:0 0 8px;color:inherit;font:11px var(--font-sans);letter-spacing:.06em;text-decoration:none;border-radius:12px;cursor:pointer; }
+.contact-links a span { border-bottom:1px solid #ffffff55;padding-bottom:6px;transition:border-color .2s,transform .2s; }
+.contact-links a:hover span,.contact-links a:focus-visible span { border-color:#fff;transform:translateY(-3px); }
+.contact-links a:focus-visible { outline:1px solid #fff;outline-offset:0; }
 .flight-intro { position:fixed;inset:0;z-index:4;pointer-events:none;color:#fff9ea; }
 .flight-begin { position:absolute;bottom:72px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:14px;font-size:8px;letter-spacing:.24em;cursor:pointer;padding:15px;pointer-events:auto; }
 .flight-begin > span:last-child { font-size:20px;font-weight:200; }

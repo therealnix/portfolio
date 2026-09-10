@@ -12,12 +12,15 @@ test('music is one particle stage with the two tracks at its boundaries', () => 
     assert.ok(!ARTICLE_SECTIONS.some(section => section.shape === 'headphones'));
 });
 
-test('the return begins with a three-part contact particle stage after the article', () => {
+test('the contact stage remains visible during the return and clears before the home frame', () => {
     const m = journeyMetrics(900, 4500), start = m.approach + m.reading;
     assert.equal(journeyAt(start, m).contact, 0);
-    assert.equal(journeyAt(start + m.departure * .12, m).contactStage, 0);
-    assert.equal(journeyAt(start + m.departure * .28, m).contactStage, 1);
-    assert.equal(journeyAt(start + m.departure * .5, m).contactStage, 2);
+    for (const fraction of [.12, .28, .5]) {
+        const state = journeyAt(start + m.departure * fraction, m);
+        assert.equal(state.contact, 1);
+        assert.equal(state.reading, false);
+        assert.ok(state.phase > READING_CAMERA);
+    }
     assert.equal(journeyAt(start + m.departure * .9, m).contact, 0);
 });
 

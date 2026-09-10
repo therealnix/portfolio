@@ -20,7 +20,6 @@ interface FlightOptions {
         active: number;
         reveal: number;
         contact: number;
-        contactStage: number;
         figureX: number;
         figureY: number;
         figureRadius: number;
@@ -157,12 +156,12 @@ export function createMountainFlight(options: FlightOptions) {
         ctx.save();
         if (phase < .3 || phase > .9)
             maskPeople();
-        // Keep the greeting on mobile, but skip every particle, including article figures.
-        const count = width < 768 ? 0 : dots.length;
         const work = input.reading ? input.reveal : input.contact;
+        // Particles only accompany the article and contact stage; the home photo stays clear.
+        const count = width < 768 || work <= .001 ? 0 : dots.length;
         const contactShapes: ParticleShape[] = ['linkedin', 'email', 'soundcloud'];
-        const shape = input.contact > 0 ? contactShapes[input.contactStage] : ARTICLE_SECTIONS[input.active]?.shape;
-        const outline = shapes[shape];
+        const contactWidth = Math.min(720, width * .8);
+        const articleOutline = shapes[ARTICLE_SECTIONS[input.active]?.shape];
         for (let bucket = 0; bucket < 4; bucket++) {
             ctx.beginPath();
             const alpha = (.15 + bucket * .10) * (1 - work) + work;
@@ -178,15 +177,22 @@ export function createMountainFlight(options: FlightOptions) {
                 projected.copy(ridge[Math.floor(ridgePosition * 800)]).project(camera);
                 let x = (projected.x * .5 + .5) * width, y = (-projected.y * .5 + .5) * height;
                 if (work > 0) {
-                    const radius = input.figureRadius, theta = Math.acos(1 - 2 * dot.seed), phi = dot.index * 2.39996 + time * .16;
+                    const contactIndex = i % 3;
+                    const isContact = input.contact > 0;
+                    const outline = isContact ? shapes[contactShapes[contactIndex]] : articleOutline;
+                    const centerX = isContact ? width * .5 + (contactIndex - 1) * contactWidth / 3 : input.figureX;
+                    const centerY = isContact ? height * .46 : input.figureY;
+                    const radius = isContact ? Math.min(88, contactWidth / 8) : input.figureRadius;
+                    const theta = Math.acos(1 - 2 * dot.seed), phi = dot.index * 2.39996 + time * .16;
                     const r = radius * (1 + .14 * Math.sin(theta * 4 + time * .8) * Math.cos(phi * 3 - time * .3));
                     const perspective = 500 / (500 - Math.sin(theta) * Math.sin(phi) * r);
-                    let bx = input.figureX + Math.sin(theta) * Math.cos(phi) * r * perspective, by = input.figureY + Math.cos(theta) * r * .78 * perspective;
+                    let bx = centerX + Math.sin(theta) * Math.cos(phi) * r * perspective, by = centerY + Math.cos(theta) * r * .78 * perspective;
                     if (outline?.length) {
-                        const point = outline[Math.floor(dot.seed * outline.length)];
+                        const sample = isContact ? Math.floor(i / 3) / Math.ceil(count / 3) : dot.seed;
+                        const point = outline[Math.floor(sample * outline.length)];
                         const breathe = 1 + .018 * Math.sin(time * .85);
-                        bx = input.figureX + point[0] * radius * .8 * breathe + Math.sin(time * 1.2 + dot.seed * 25) * 1.3;
-                        by = input.figureY + point[1] * radius * .8 * breathe + Math.cos(time + dot.seed * 31) * 1.3;
+                        bx = centerX + point[0] * radius * .8 * breathe + Math.sin(time * 1.2 + dot.seed * 25) * 1.3;
+                        by = centerY + point[1] * radius * .8 * breathe + Math.cos(time + dot.seed * 31) * 1.3;
                     }
                     x = x * (1 - work) + bx * work;
                     y = y * (1 - work) + by * work;
