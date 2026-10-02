@@ -3,6 +3,7 @@ import { circularDelta, smoothstep, getFlightFrame, getPresentation, wrap } from
 import { createPhotoScene, photoPoint, PHOTO_ASPECT, PHOTO_TAN, HIKER_OUTLINE } from './photo-scene';
 import { createSketchPass } from './sketch-pass';
 import { READING_CAMERA } from './journey';
+import { RIDGES } from './ridges';
 import { ARTICLE_SECTIONS } from './article-content';
 import { loadParticleShapes } from '../lib/particle-shapes';
 import type { ParticleShape, Point } from '../lib/particle-shapes';
@@ -14,6 +15,7 @@ interface FlightOptions {
     intro: HTMLDivElement;
     input: {
         phase: number;
+        drift: number;
         reading: boolean;
         holding: boolean;
         reduced: boolean;
@@ -25,17 +27,16 @@ interface FlightOptions {
         figureX: number;
         figureY: number;
         figureRadius: number;
+        clearX: number;
     };
     onReady: () => void;
     onError: () => void;
 }
-const RIDGES = [
-    [[0, .426], [.07, .411], [.13, .444], [.17, .42], [.21, .432], [.26, .417], [.31, .447], [.37, .425], [.42, .426], [.49, .453], [.6, .48], [.8, .5], [1, .52]],
-    [[0, .478], [.07, .495], [.14, .48], [.20, .537], [.27, .49], [.36, .474], [.4, .49], [.48, .527], [.56, .536], [.65, .519], [.75, .53], [.86, .56], [1, .55]],
-    [[0, .556], [.06, .558], [.13, .58], [.17, .59], [.25, .531], [.34, .485], [.40, .484], [.47, .532], [.57, .572], [.65, .555], [.74, .586], [.87, .62], [1, .64]],
-    [[0, .716], [.1, .765], [.22, .827], [.34, .787], [.48, .772], [.58, .7], [.68, .641], [.73, .632], [.77, .652], [.80, .704], [.88, .741], [1, .662]],
-    [[0, .866], [.08, .891], [.17, .94], [.3, .974], [.41, .94], [.48, .765], [.55, .797], [.63, .817], [.72, .763], [.8, .783], [.9, .729], [1, .65]],
-];
+// How far the reading camera glides across the valley between the first and the last line.
+const DRIFT_POSITION = [-3, .6, -2], DRIFT_TARGET = [-3.4, .3, 0];
+const AMBER = '#f4b953';
+const GOLDEN = .6180339887;
+const WAVE_LINES = 17;
 export function createMountainFlight(options: FlightOptions) {
     const { root, host, particles: canvas, photograph, intro, input, onError } = options;
     const ctx = canvas.getContext('2d');
@@ -49,16 +50,8 @@ export function createMountainFlight(options: FlightOptions) {
     const camera = new THREE.PerspectiveCamera(51, 1, .1, 2400);
     camera.zoom = 1.08;
     const font = getComputedStyle(document.body).fontFamily;
-    const palette = document.createElement('canvas');
-    palette.width = 192;
-    palette.height = 128;
-    const paletteContext = palette.getContext('2d');
-    let paletteReady = false, lastPalette = -Infinity;
-    const captureColor = (source: HTMLCanvasElement) => {
-        paletteContext?.drawImage(source, 0, 0, palette.width, palette.height);
-        paletteReady = !!paletteContext;
-    };
-    let disposed = false, loaded = false, width = 1, height = 1, frameId = 0, last = 0, time = 0, phase = 0, resting = false, lastSceneKey = '';
+    let disposed = false, loaded = false, width = 1, height = 1, frameId = 0, last = 0, time = 0, phase = 0, drift = 0, resting = false, lastSceneKey = '';
+    let scrolled = window.scrollY, pull = 0, cleared = true, waveClock = 0, waveShow = 0;
     void world.ready.then(() => { if (!disposed) {
         loaded = true;
         resting = false;
@@ -70,7 +63,14 @@ export function createMountainFlight(options: FlightOptions) {
     let shapes: Partial<Record<ParticleShape, Point[]>> = {};
     void loadParticleShapes().then(value => { if (!disposed)
         shapes = value; });
-    const dots = Array.from({ length: 600 }, (_, i) => ({ seed: random(), index: i, x: 0, y: 0, ridgePosition: 0 }));
+    // One in four points stays on the ridgelines; the others leave them to draw each figure.
+    let figures = 0;
+    const dots = Array.from({ length: 1100 }, (_, i) => {
+        const ambient = i % 4 === 0;
+        return { seed: random(), pace: .55 + random() * .9, spin: random() < .5 ? -.5 : .5, ridge: i % RIDGES.length, ambient, rank: ambient ? -1 : figures++, x: 0, y: 0, fx: 0, fy: 0, free: 0, ridgePosition: 0 };
+    });
+    // The music figure is drawn as lines through its points, one list per waveform, left to right.
+    const waveLines = Array.from({ length: WAVE_LINES }, (_, line) => dots.filter(dot => !dot.ambient && dot.rank % WAVE_LINES === line));
     const contactResponse = [0, 0, 0];
     const ridges = RIDGES.map(points => new THREE.CatmullRomCurve3(points.map(([u, v]) => photoPoint(u, v))).getPoints(800));
     const people = HIKER_OUTLINE.map(([u, v]) => photoPoint(u, v, 22));
@@ -78,7 +78,6 @@ export function createMountainFlight(options: FlightOptions) {
     const resize = () => {
         resting = false;
         lastSceneKey = '';
-        paletteReady = false;
         width = host.clientWidth;
         height = host.clientHeight;
         const dpr = Math.min(window.devicePixelRatio || 1, width < 768 ? 1.25 : 1.5);
@@ -121,21 +120,22 @@ export function createMountainFlight(options: FlightOptions) {
         last = now;
         if (!input.reduced)
             time += dt;
-        // Settle gently while the introduction enters, then cache the central reading view.
+        // Settle gently while the introduction enters, then rest on the reading view.
         const delta = circularDelta(phase, input.phase);
         phase = input.holding && Math.abs(delta) < .00005 ? READING_CAMERA : wrap(phase + delta * (1 - Math.exp(-dt * 5)));
+        const glide = input.reduced ? 0 : input.drift;
+        drift = Math.abs(glide - drift) < .00002 ? glide : drift + (glide - drift) * (1 - Math.exp(-dt * 5));
         const flight = getFlightFrame(phase), presentation = getPresentation(phase), sketch = input.reduced ? 0 : presentation.sketch;
         const hero = input.reduced || !loaded ? 1 : flight.photo, greeting = input.reduced ? 0 : presentation.greeting;
-        camera.position.fromArray(flight.position);
-        look.fromArray(flight.target);
+        camera.position.set(flight.position[0] + DRIFT_POSITION[0] * drift, flight.position[1] + DRIFT_POSITION[1] * drift, flight.position[2] + DRIFT_POSITION[2] * drift);
+        look.set(flight.target[0] + DRIFT_TARGET[0] * drift, flight.target[1] + DRIFT_TARGET[1] * drift, flight.target[2] + DRIFT_TARGET[2] * drift);
         camera.up.set(Math.sin(flight.roll), Math.cos(flight.roll), 0);
         camera.lookAt(look);
         camera.updateMatrixWorld();
-        const sceneKey = `${phase.toFixed(7)}:${sketch.toFixed(7)}`;
+        // The scene only redraws while the camera moves; a resting reader costs no WebGL work.
+        const sceneKey = `${phase.toFixed(7)}:${sketch.toFixed(7)}:${drift.toFixed(5)}`;
         if (loaded && hero < .999 && !input.reduced && sceneKey !== lastSceneKey) {
-            const capture = width >= 768 && sketch > .001 && (!paletteReady || phase === READING_CAMERA || now - lastPalette > 100);
-            sketchPass.render(world.scene, camera, sketch, capture ? captureColor : undefined);
-            if (capture) lastPalette = now;
+            sketchPass.render(world.scene, camera, sketch);
             lastSceneKey = sceneKey;
         }
         photograph.style.opacity = String(hero);
@@ -144,6 +144,8 @@ export function createMountainFlight(options: FlightOptions) {
         intro.style.opacity = String(greeting);
         intro.style.visibility = greeting > .005 ? 'visible' : 'hidden';
         intro.inert = greeting < .8;
+        // The greeting is cut out of the photograph; the amber points sit on top of the print.
+        canvas.style.mixBlendMode = greeting > .001 ? 'difference' : 'normal';
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = '#fff';
         if (greeting > .001) {
@@ -162,63 +164,96 @@ export function createMountainFlight(options: FlightOptions) {
         const work = input.reading ? input.reveal : input.contact;
         // Particles only accompany the article and contact stage; the home photo stays clear.
         const count = width < 768 || work <= .001 ? 0 : dots.length;
+        if (!count && !cleared)
+            dots.forEach(dot => { dot.free = 0; dot.x = 0; });
+        cleared = !count;
+        // Scrolling pulls the figure along a little before it settles again.
+        const moved = window.scrollY - scrolled;
+        scrolled = window.scrollY;
+        pull += ((Math.abs(moved) < height && dt > 0 ? moved / dt : 0) - pull) * (1 - Math.exp(-dt * 9));
+        const isContact = !input.reading && input.contact > 0;
         const contactShapes: ParticleShape[] = ['linkedin', 'email', 'soundcloud'];
-        const contactWidth = Math.min(720, width * .8);
+        const contactWidth = Math.min(820, width * .84);
         const selectedContact = input.contactHover >= 0 ? input.contactHover : input.contactFocus;
         contactResponse.forEach((value, index) => {
             const target = input.contact >= .8 && selectedContact === index ? 1 : 0;
             contactResponse[index] = value + (target - value) * (1 - Math.exp(-dt * 7));
         });
-        const articleOutline = shapes[ARTICLE_SECTIONS[input.active]?.shape];
+        const section = input.reading ? ARTICLE_SECTIONS[input.active] : undefined;
+        const articleOutline = section ? shapes[section.shape] : undefined;
+        const radius = input.figureRadius, perLine = Math.ceil(figures / WAVE_LINES);
+        // The waveform lines only appear once their points have gathered, and leave before they scatter.
+        const waving = count > 0 && section?.shape === 'music';
+        waveClock = waving ? waveClock + dt : 0;
+        waveShow += waving ? (smoothstep(.7, 1.9, waveClock) - waveShow) * (1 - Math.exp(-dt * 6)) : -waveShow * (1 - Math.exp(-dt * 12));
+        // The text column stays clear of the ridge lights while reading.
+        const clearX = input.reading ? input.clearX : -1e4;
+        ctx.fillStyle = AMBER;
         for (let bucket = 0; bucket < 4; bucket++) {
             ctx.beginPath();
-            const alpha = (.15 + bucket * .10) * (1 - work) + work;
+            const alpha = (bucket ? .5 + bucket * .16 : .62) * work;
             ctx.globalAlpha = alpha;
             for (let i = bucket; i < count; i += 4) {
-                const dot = dots[i], ridge = ridges[i % ridges.length];
-                // Restore the original ridge flow, but recycle at the ends without interpolating across the image.
-                const ridgePosition = wrap(dot.seed + time * .007);
+                const dot = dots[i], ridge = ridges[dot.ridge];
+                // Points travel slowly along their ridge and recycle at its ends.
+                const ridgePosition = wrap(dot.seed + time * .006);
                 const recycled = ridgePosition < dot.ridgePosition;
                 dot.ridgePosition = ridgePosition;
-                const edgeOpacity = smoothstep(0, .025, ridgePosition) * (1 - smoothstep(.975, 1, ridgePosition));
-                const opacity = edgeOpacity * (1 - work) + work;
                 projected.copy(ridge[Math.floor(ridgePosition * 800)]).project(camera);
-                let x = (projected.x * .5 + .5) * width, y = (-projected.y * .5 + .5) * height;
-                if (work > 0) {
-                    const contactIndex = i % 3;
-                    const isContact = input.contact > 0;
-                    const outline = isContact ? shapes[contactShapes[contactIndex]] : articleOutline;
-                    const centerX = isContact ? width * .5 + (contactIndex - 1) * contactWidth / 3 : input.figureX;
-                    const centerY = isContact ? height * .46 : input.figureY;
-                    // Optical sizing balances the square mark against the wider envelope and cloud.
-                    const radius = isContact ? Math.min(62, contactWidth / 10) * [.83, 1, 1.08][contactIndex] : input.figureRadius;
-                    const theta = Math.acos(1 - 2 * dot.seed), phi = dot.index * 2.39996 + time * .16;
-                    const r = radius * (1 + .14 * Math.sin(theta * 4 + time * .8) * Math.cos(phi * 3 - time * .3));
-                    const perspective = 500 / (500 - Math.sin(theta) * Math.sin(phi) * r);
-                    let bx = centerX + Math.sin(theta) * Math.cos(phi) * r * perspective, by = centerY + Math.cos(theta) * r * .78 * perspective;
+                const rx = (projected.x * .5 + .5) * width, ry = (-projected.y * .5 + .5) * height;
+                let gather = 0, bx = rx, by = ry;
+                if (!dot.ambient && isContact) {
+                    const contactIndex = dot.rank % 3, outline = shapes[contactShapes[contactIndex]];
                     if (outline?.length) {
-                        const sample = isContact ? Math.floor(i / 3) / Math.ceil(count / 3) : dot.seed;
-                        const point = outline[Math.floor(sample * outline.length)];
-                        const response = isContact ? contactResponse[contactIndex] : 0;
-                        const breathe = 1 + .018 * Math.sin(time * .85) + response * .08;
-                        const ripple = response * 2.4 * Math.sin(time * 3 + dot.seed * 18);
-                        bx = centerX + point[0] * (radius * .8 * breathe + ripple) + Math.sin(time * 1.2 + dot.seed * 25) * 1.3;
-                        by = centerY + point[1] * (radius * .8 * breathe + ripple) + Math.cos(time + dot.seed * 31) * 1.3 - response * 4;
+                        // Optical sizing balances the square mark against the wider envelope and cloud.
+                        const size = Math.min(78, contactWidth / 9) * [.83, 1, 1.08][contactIndex];
+                        const point = outline[Math.floor(Math.floor(dot.rank / 3) / Math.ceil(figures / 3) * outline.length)];
+                        const response = contactResponse[contactIndex];
+                        const reach = size * .8 * (1 + .018 * Math.sin(time * .85) + response * .08) + response * 2.4 * Math.sin(time * 3 + dot.seed * 18);
+                        bx = width * .5 + (contactIndex - 1) * contactWidth / 3 + point[0] * reach + Math.sin(time * 1.2 + dot.seed * 25) * 1.1;
+                        by = height * .56 + point[1] * reach + Math.cos(time + dot.seed * 31) * 1.1 - response * 4;
+                        gather = work;
                     }
-                    x = x * (1 - work) + bx * work;
-                    y = y * (1 - work) + by * work;
+                } else if (!dot.ambient && section?.shape === 'music') {
+                    // Stacked waveforms: sound drawn the way the ridges are.
+                    const line = dot.rank % WAVE_LINES, t = (Math.floor(dot.rank / WAVE_LINES) + .5) / perLine;
+                    const swell = Math.exp(-Math.pow((t - .5) / .2, 2));
+                    const wave = (.5 + .5 * Math.sin(t * 19 + line * 1.9 + time * 1.7)) * (.55 + .45 * Math.sin(t * 7.3 - line * .8 - time * 1.1));
+                    bx = input.figureX + (t - .5) * radius * 2.2;
+                    by = input.figureY + (line / (WAVE_LINES - 1) - .42) * radius * 1.7 - swell * wave * radius * .5 - Math.sin(t * 43 + line + time * 2.2) * radius * .006;
+                    gather = 1;
+                } else if (!dot.ambient && articleOutline?.length) {
+                    const point = articleOutline[Math.floor(wrap(dot.rank * GOLDEN) * articleOutline.length)];
+                    const reach = radius * .86 * (1 + .018 * Math.sin(time * .85));
+                    bx = input.figureX + point[0] * reach + Math.sin(time * 1.2 + dot.seed * 25) * 1.2;
+                    by = input.figureY + point[1] * reach + Math.cos(time + dot.seed * 31) * 1.2;
+                    gather = 1;
                 }
-                const ease = !dot.x || work === 0 || (recycled && work < .99) ? 1 : 1 - Math.exp(-dt * 6);
-                dot.x += (x - dot.x) * ease;
-                dot.y += (y - dot.y) * ease;
-                if (Math.abs(dot.x - width * .5) < width && Math.abs(dot.y - height * .5) < height) {
-                    const size = .95 + bucket * .30;
+                const settle = dot.x ? 1 - Math.exp(-dt * 4.6 * dot.pace) : 1;
+                dot.free += (gather - dot.free) * (isContact ? 1 : settle);
+                if (dot.free < .02 || !dot.x) {
+                    dot.fx = bx;
+                    dot.fy = by;
+                } else {
+                    // A slight spiral, so one figure turns into the next instead of sliding.
+                    const dx = bx - dot.fx, dy = by - dot.fy;
+                    dot.fx += (dx - dy * dot.spin) * settle;
+                    dot.fy += (dy + dx * dot.spin) * settle;
+                }
+                const free = dot.free * dot.free * (3 - 2 * dot.free);
+                dot.x = rx + (dot.fx - rx) * free;
+                dot.y = ry + (dot.fy - ry) * free - pull * .012 * dot.seed * free * (isContact ? 0 : 1);
+                // Fade at the ridge ends and beside the text; a gathered point is always fully drawn.
+                const edge = smoothstep(0, .025, ridgePosition) * (1 - smoothstep(.975, 1, ridgePosition)) * smoothstep(clearX + 10, clearX + 190, dot.x);
+                const opacity = (recycled && free < .5 ? 0 : edge + (1 - edge) * free) * (dot.ambient ? 1 : 1 - waveShow * free);
+                if (opacity > .004 && Math.abs(dot.x - width * .5) < width && Math.abs(dot.y - height * .5) < height) {
+                    const size = .75 + dot.ridge * .2 + bucket * .12;
                     if (opacity < .999) {
-                        // Only the few fading endpoints need separate fills; keep the rest batched.
-                        const edge = new Path2D();
-                        edge.arc(dot.x, dot.y, size, 0, Math.PI * 2);
+                        // Only the fading points need separate fills; keep the rest batched.
+                        const faded = new Path2D();
+                        faded.arc(dot.x, dot.y, size, 0, Math.PI * 2);
                         ctx.globalAlpha = alpha * opacity;
-                        ctx.fill(edge);
+                        ctx.fill(faded);
                         ctx.globalAlpha = alpha;
                     } else {
                         ctx.moveTo(dot.x + size, dot.y);
@@ -228,27 +263,26 @@ export function createMountainFlight(options: FlightOptions) {
             }
             ctx.fill();
         }
-        ctx.restore();
-        ctx.globalAlpha = 1;
-        const colored = width >= 768 && sketch > .001 && paletteReady;
-        canvas.style.mixBlendMode = colored ? 'normal' : 'difference';
-        if (colored) {
-            // Sample the current filtered scene palette for the transitioning points.
-            // Source-in keeps the particle silhouettes and alpha; no per-pixel CPU readback.
-            ctx.save();
-            ctx.globalCompositeOperation = 'source-in';
-            ctx.filter = `invert(${1 - sketch})`;
-            ctx.drawImage(palette, 0, 0, width, height);
-            ctx.restore();
-            if (work > .001) {
-                ctx.save();
-                ctx.globalCompositeOperation = 'source-atop';
-                ctx.globalAlpha = work;
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, width, height);
-                ctx.restore();
+        if (waveShow > .01) {
+            // Back to front, every waveform hides the ones behind it, like one ridge in front of the next.
+            ctx.lineWidth = 1.3;
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = AMBER;
+            for (const line of waveLines) {
+                ctx.beginPath();
+                line.forEach((dot, i) => { if (i)
+                    ctx.lineTo(dot.x, dot.y);
+                else
+                    ctx.moveTo(dot.x, dot.y); });
+                ctx.globalAlpha = .9 * waveShow * work;
+                ctx.fillStyle = '#0a2238';
+                ctx.fill();
+                ctx.globalAlpha = waveShow * work;
+                ctx.stroke();
             }
         }
+        ctx.restore();
+        ctx.globalAlpha = 1;
         if (!document.hidden)
             frameId = requestAnimationFrame(render);
     };

@@ -4,6 +4,7 @@ import { circularDelta, getFlightFrame, getPresentation, photoOpacity, STATIONS,
 import { photoDepth, photoPoint, PHOTO_TAN, PHOTO_ASPECT } from '../src/flight/photo-scene.ts';
 import { journeyAt, journeyMetrics, remapJourneyOffset, READING_CAMERA } from '../src/flight/journey.ts';
 import { ARTICLE_SECTIONS } from '../src/flight/article-content.ts';
+import { RIDGES, ridgePath, trailHeight, trailPath } from '../src/flight/ridges.ts';
 
 test('music is one particle stage with the two tracks at its boundaries', () => {
     const musicSections = ARTICLE_SECTIONS.filter(section => section.shape === 'music');
@@ -123,4 +124,39 @@ test('depth-projected photo coordinates reproduce the original image at the open
             assert.ok(Math.abs(p.x / (-p.z * PHOTO_TAN * 2 * PHOTO_ASPECT) + .5 - u) < 1e-10);
             assert.ok(Math.abs(.5 - p.y / (-p.z * PHOTO_TAN * 2) - v) < 1e-10);
         }
+});
+test('the reading glide crosses the article once and is at rest wherever the photograph shows', () => {
+    const m = journeyMetrics(900, 4500);
+    let previous = -Infinity;
+    for (let offset = m.viewport * .9; offset <= m.reading - m.viewport * .75; offset += 23) {
+        const state = journeyAt(m.approach + offset, m);
+        assert.equal(state.phase, READING_CAMERA);
+        assert.ok(state.drift > previous && Math.abs(state.drift) <= 1);
+        previous = state.drift;
+    }
+    assert.ok(journeyAt(m.approach + m.viewport, m).drift < -.5);
+    assert.ok(journeyAt(m.approach + m.reading - m.viewport, m).drift > .5);
+    for (let offset = 0; offset < m.length; offset += 5) {
+        const state = journeyAt(offset, m);
+        // No jump anywhere along the loop, including where the article starts and ends.
+        assert.ok(Math.abs(journeyAt(offset + 5, m).drift - state.drift) < .02);
+        if (photoOpacity(state.phase) > 0)
+            assert.equal(Math.abs(state.drift), 0);
+        assert.ok(state.progress >= 0 && state.progress <= 1);
+    }
+});
+test('the route profile has a summit on every stop and one ridgeline for every section', () => {
+    const stops = [.21, .36, .5, .66, .86];
+    for (const stop of stops) {
+        const summit = trailHeight(stops, stop);
+        assert.ok(summit > trailHeight(stops, stop - .04) && summit > trailHeight(stops, stop + .04));
+    }
+    for (let i = 0; i <= 1000; i++) {
+        const height = trailHeight(stops, i / 1000);
+        assert.ok(height > 0 && height <= 1);
+    }
+    assert.ok(trailPath(stops, 1000, 100).startsWith('M0.0 '));
+    assert.ok(trailPath(stops, 1000, 100, true).endsWith('Z'));
+    assert.equal(RIDGES.length, ARTICLE_SECTIONS.length);
+    RIDGES.forEach((_, index) => assert.match(ridgePath(index, 600, 26), /^M0\.0 [\d.]+ L/));
 });

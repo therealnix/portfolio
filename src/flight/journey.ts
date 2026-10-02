@@ -26,7 +26,13 @@ export function journeyAt(offset: number, metrics: JourneyMetrics) {
     const contactDuration = metrics.departure * .62;
     const contactRaw = clamp((local - contactStart) / contactDuration);
     const contact = local > contactStart ? smoothstep(0, .12, contactRaw) * (1 - smoothstep(.82, 1, contactRaw)) : 0;
-    return { local, phase: Math.min(phase, 1 - 1e-9), reading, holding, readOffset, reveal, entrance, textOpacity, contact };
+    // The route runs from the first line to the last; the camera glides sideways along it.
+    const progress = clamp(readOffset / metrics.reading);
+    // The glide leans in over the end of the approach and is released across the contact stage,
+    // so it is at rest wherever the photograph is on screen.
+    const drift = (progress * 2 - 1) * smoothstep(metrics.approach - metrics.viewport * 1.5, holdStart, local)
+        * (1 - smoothstep(holdEnd, contactStart + contactDuration, local));
+    return { local, phase: Math.min(phase, 1 - 1e-9), reading, holding, readOffset, reveal, entrance, textOpacity, contact, progress, drift };
 }
 export function remapJourneyOffset(offset: number, before: JourneyMetrics, after: JourneyMetrics) {
     const state = journeyAt(offset, before);
