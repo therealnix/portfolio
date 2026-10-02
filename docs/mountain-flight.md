@@ -82,7 +82,7 @@ Measured on 2026-10-02 in headless Edge on the development laptop's GPU (AMD Rad
 | --- | --- | --- |
 | Scrolling through the article | 34 frames per second, 44 frames over 34 ms | 60 frames per second, none over 34 ms |
 | Full loop scroll | 46 frames per second | 60 frames per second |
-| Main thread busy while scrolling the article | 67% | 12% |
+| Main thread busy while scrolling the article | 67% | 10 to 12% |
 | Main thread busy at rest on a section | 32 to 36% | under 2% |
 | Article scroll with a simulated 4x slower CPU | 6 frames per second | 52 frames per second |
 
