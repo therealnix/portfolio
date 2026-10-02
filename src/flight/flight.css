@@ -1,7 +1,7 @@
 body.flight-mode { background:#10161f; overflow-x:hidden; scrollbar-width:none; }
 body.flight-mode::-webkit-scrollbar { display:none; }
 /* Paper and two muted inks: the slate of the ridges and the ochre of the sunrise. */
-.mountain-flight { position:relative; isolation:isolate; --paper:#efe7d6; --ink:#18222d; --slate:#4f657b; --ochre:#a2691d; --sun:#c68f3c; --ease:cubic-bezier(.2,.7,.1,1); --column:min(660px,calc(100vw - 44px)); --strip:27vh; --profile:24px; font-family:var(--font-sans); }
+.mountain-flight { position:relative; isolation:isolate; --paper:#efe7d6; --ink:#18222d; --slate:#4f657b; --ochre:#a2691d; --sun:#c68f3c; --ease:cubic-bezier(.2,.7,.1,1); --column:min(660px,calc(100vw - 44px)); --strip:27vh; --profile:24px; --trail-pad:30px; font-family:var(--font-sans); }
 .mountain-flight ::selection { background:#c68f3c59; }
 .flight-world,.flight-photograph,.flight-greeting,.flight-vignette { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }
 .flight-world { z-index:0; }
@@ -31,9 +31,9 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 
 /* The route: an elevation profile of the article with a summit at every section. It has its own band of paper
    directly above the landscape strip; the text scrolls away underneath it. */
-.flight-trail { position:fixed;z-index:7;left:50%;bottom:var(--strip);width:var(--column);height:calc(var(--profile) + 30px);margin-left:calc(var(--column) / -2);opacity:0;visibility:hidden;color:var(--slate); }
-.trail-paper { position:absolute;left:calc(50% - 50vw);width:100vw;top:-16px;bottom:0;background:var(--grain,none),var(--paper); }
-.trail-paper::before { content:'';position:absolute;left:0;right:0;bottom:100%;height:22px;background:linear-gradient(180deg,#efe7d600,var(--paper)); }
+.flight-trail { position:fixed;z-index:7;left:50%;bottom:var(--strip);width:var(--column);height:calc(var(--profile) + var(--trail-pad));margin-left:calc(var(--column) / -2);opacity:0;visibility:hidden;color:var(--slate); }
+/* The band shares the sheet's grain, lined up with it, so its soft upper edge leaves no seam. */
+.trail-paper { position:absolute;left:calc(50% - 50vw);width:100vw;top:-38px;bottom:0;background:var(--grain,none) 0 calc(var(--strip) + var(--profile) + var(--trail-pad) + 38px - 100vh),var(--paper);mask-image:linear-gradient(180deg,#0000,#000 22px); }
 .trail-profile { position:absolute;left:0;top:0;width:100%;height:var(--profile); }
 .flight-trail svg { position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round; }
 .trail-ground { opacity:.5; }
@@ -99,8 +99,7 @@ body.flight-mode::-webkit-scrollbar { display:none; }
   .section-sketch { width:76px; }
   .article-ending p:first-of-type { font-size:23px; }
   .flight-begin { bottom:65px; }
-  .mountain-flight { --strip:23vh;--profile:18px; }
-  .flight-trail { height:calc(var(--profile) + 14px); }
+  .mountain-flight { --strip:23vh;--profile:18px;--trail-pad:14px; }
   .flight-trail button { display:none; }
   .contact-title { font-size:14.6vw; }
   .contact-links { grid-template-columns:1fr;width:calc(100% - 44px); }
