@@ -182,10 +182,11 @@ export function createMountainFlight(options: FlightOptions) {
         const section = input.reading ? ARTICLE_SECTIONS[input.active] : undefined;
         const articleOutline = section ? shapes[section.shape] : undefined;
         const radius = input.figureRadius, perLine = Math.ceil(figures / WAVE_LINES);
-        // The waveform lines only appear once their points have gathered, and leave before they scatter.
+        // The waveform lines appear once their points have gathered, rise from flat, and leave before the points scatter.
         const waving = count > 0 && section?.shape === 'music';
         waveClock = waving ? waveClock + dt : 0;
-        waveShow += waving ? (smoothstep(.7, 1.9, waveClock) - waveShow) * (1 - Math.exp(-dt * 6)) : -waveShow * (1 - Math.exp(-dt * 12));
+        waveShow += waving ? (smoothstep(.7, 1.7, waveClock) - waveShow) * (1 - Math.exp(-dt * 6)) : -waveShow * (1 - Math.exp(-dt * 12));
+        const swellUp = smoothstep(1.1, 3, waveClock);
         // The text column stays clear of the ridge lights while reading.
         const clearX = input.reading ? input.clearX : -1e4;
         ctx.fillStyle = AMBER;
@@ -201,7 +202,7 @@ export function createMountainFlight(options: FlightOptions) {
                 dot.ridgePosition = ridgePosition;
                 projected.copy(ridge[Math.floor(ridgePosition * 800)]).project(camera);
                 const rx = (projected.x * .5 + .5) * width, ry = (-projected.y * .5 + .5) * height;
-                let gather = 0, bx = rx, by = ry;
+                let gather = 0, bx = rx, by = ry, lift = 0, drag = dot.seed;
                 if (!dot.ambient && isContact) {
                     const contactIndex = dot.rank % 3, outline = shapes[contactShapes[contactIndex]];
                     if (outline?.length) {
@@ -220,7 +221,10 @@ export function createMountainFlight(options: FlightOptions) {
                     const swell = Math.exp(-Math.pow((t - .5) / .2, 2));
                     const wave = (.5 + .5 * Math.sin(t * 19 + line * 1.9 + time * 1.7)) * (.55 + .45 * Math.sin(t * 7.3 - line * .8 - time * 1.1));
                     bx = input.figureX + (t - .5) * radius * 2.2;
-                    by = input.figureY + (line / (WAVE_LINES - 1) - .42) * radius * 1.7 - swell * wave * radius * .5 - Math.sin(t * 43 + line + time * 2.2) * radius * .006;
+                    by = input.figureY + (line / (WAVE_LINES - 1) - .42) * radius * 1.7;
+                    // The moving part is added after the easing, so neighbours on a line stay in step.
+                    lift = (swell * wave * radius * .5 + Math.sin(t * 43 + line + time * 2.2) * radius * .006) * swellUp;
+                    drag = line / (WAVE_LINES - 1);
                     gather = 1;
                 } else if (!dot.ambient && articleOutline?.length) {
                     const point = articleOutline[Math.floor(wrap(dot.rank * GOLDEN) * articleOutline.length)];
@@ -242,7 +246,7 @@ export function createMountainFlight(options: FlightOptions) {
                 }
                 const free = dot.free * dot.free * (3 - 2 * dot.free);
                 dot.x = rx + (dot.fx - rx) * free;
-                dot.y = ry + (dot.fy - ry) * free - pull * .012 * dot.seed * free * (isContact ? 0 : 1);
+                dot.y = ry + (dot.fy - lift - ry) * free - pull * .012 * drag * free * (isContact ? 0 : 1);
                 // Fade at the ridge ends and beside the text; a gathered point is always fully drawn.
                 const edge = smoothstep(0, .025, ridgePosition) * (1 - smoothstep(.975, 1, ridgePosition)) * smoothstep(clearX + 10, clearX + 190, dot.x);
                 const opacity = (recycled && free < .5 ? 0 : edge + (1 - edge) * free) * (dot.ambient ? 1 : 1 - waveShow * free);
@@ -270,10 +274,11 @@ export function createMountainFlight(options: FlightOptions) {
             ctx.strokeStyle = AMBER;
             for (const line of waveLines) {
                 ctx.beginPath();
-                line.forEach((dot, i) => { if (i)
-                    ctx.lineTo(dot.x, dot.y);
-                else
-                    ctx.moveTo(dot.x, dot.y); });
+                ctx.moveTo(line[0].x, line[0].y);
+                // Curves through the midpoints keep the crests round with few points.
+                for (let i = 1; i < line.length - 1; i++)
+                    ctx.quadraticCurveTo(line[i].x, line[i].y, (line[i].x + line[i + 1].x) / 2, (line[i].y + line[i + 1].y) / 2);
+                ctx.lineTo(line[line.length - 1].x, line[line.length - 1].y);
                 ctx.globalAlpha = .9 * waveShow * work;
                 ctx.fillStyle = '#0a2238';
                 ctx.fill();

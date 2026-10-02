@@ -95,7 +95,7 @@ body.flight-mode::-webkit-scrollbar { display:none; }
   .portfolio-article h3 { font-size:36px; }
   .article-section,.article-ending { margin-top:84px; }
   .article-ending p:first-of-type { font-size:23px; }
-  .article-veil { background:linear-gradient(180deg,#071d32c4,#071d32d6 34%,#071d32e8); }
+  .article-veil { background:linear-gradient(180deg,#071d32a6,#071d32c2 36%,#071d32de); }
   .article-fade { width:100%;mask-image:none; }
   .flight-begin { bottom:65px; }
   .contact-title { top:14vh;font-size:14.6vw; }

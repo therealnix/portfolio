@@ -34,7 +34,9 @@ of writing (Substack style) with players and buttons placed in the flow.
 
 The flight experiment lives on `codex/mountain-flight-experiment`.
 `claude/mountain-flight-base` is that branch plus the last Codex session's work
-and this file, committed 2026-10-02; branch new flight work from it. The finished
+and this file, committed 2026-10-02. `claude/mountain-flight-rework` (also
+2026-10-02) is the visual rework of everything after the fly-by, built on that
+base; branch new flight work from the rework once it is accepted. The finished
 galaxy version is preserved at commit `b53ef22` on `feature/ui-improvements`.
 Keep experiments on their own branch.
 
@@ -72,9 +74,22 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
   both rejected.
 - 2026-09-10: Both SoundCloud players sit inside the Music section of the
   article, and the text column is left-aligned. Reading-section particles are
-  flat orange with no glow. `docs/mountain-flight.md` still describes white
-  particles and players in the left margin, so update it with the next change.
+  flat orange with no glow. `docs/mountain-flight.md` was brought up to date
+  with the rework on 2026-10-02.
 - 2026-09-09: Hidden duplicate SoundCloud players caused sizing errors and were
   removed. Changes to visibility or click handling around the embeds broke
   browsing in the players once and were reverted.
-- `npm run test:flight` had 11 passing tests at the end of the last session.
+- `npm run test:flight` had 11 passing tests at the end of the last Codex
+  session and has 13 after the rework.
+
+## Rework of 2026-10-02
+
+- Art direction after the fly-by: one navy and amber print with cream type.
+  Display type matches the opening "HI!" (system heavy sans, no web font, so
+  the opening frame is untouched). The photograph's five ridgelines
+  (`src/flight/ridges.ts`) are the recurring line motif. Details are in
+  `docs/mountain-flight.md`.
+- The opening frame, the fly-by path and all article wording are unchanged on
+  purpose. The intro button still reads "get to kow me" (typo left as written).
+- The Browser pane crops screenshots when it is hidden. Full-size checks were
+  done with headless Edge over the DevTools protocol instead.
