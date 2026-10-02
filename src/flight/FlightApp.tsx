@@ -137,27 +137,20 @@ export default function FlightApp() {
     </div>
     <article ref={article} className="portfolio-article" aria-labelledby="article-title">
       <header className="article-heading">
-        <p className="article-byline">Niklas Kornev</p>
-        <h2 id="article-title">A few things<br />I’ve been making.</h2>
-        <p className="article-deck">On building things for the web, making music, and staying curious along the way.</p>
+        <p className="article-byline">I provide you with.</p>
+        <h2 id="article-title">Hi!<br />I'm Nik.</h2>
+        <p className="article-deck">I'm a 20 year old dual datascience student from Munich with the ambition to build cool shit. With that said here are some of my recent projects.</p>
       </header>
-      <p>I’m Niklas. This is a small introduction to the things I spend my time on: the projects I’m building, the work I do with other people, and the ideas I follow outside of it. Think of it as a little more context to go with my CV.</p>
-      <p>I like work that lets me move between the practical and the creative. Sometimes that means getting the details of a webshop right. Sometimes it means experimenting with an interaction or following a sound until it becomes a track.</p>
       {ARTICLE_SECTIONS.map((section, index) => <section key={section.id} id={section.id} ref={node => { if (node)
             sections.current[index] = node; }} className="article-section" data-shape={section.shape}>
-        <h3>{section.title}</h3>
-        {section.tracks?.[0] && <aside className="article-player" aria-label={`${section.tracks[0].label} on SoundCloud`}>
-          <iframe title={`${section.tracks[0].label} on SoundCloud`} width="100%" height="120" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={`https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${section.tracks[0].id}&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}/>
-          <a href={section.tracks[0].href} target="_blank" rel="noopener noreferrer">{section.tracks[0].label} ↗</a>
-        </aside>}
-        {section.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
-        {section.tracks?.[1] && <aside className="article-player article-player--end" aria-label={`${section.tracks[1].label} on SoundCloud`}>
-          <iframe title={`${section.tracks[1].label} on SoundCloud`} width="100%" height="120" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={`https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A${section.tracks[1].id}&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true`}/>
-          <a href={section.tracks[1].href} target="_blank" rel="noopener noreferrer">{section.tracks[1].label} ↗</a>
-        </aside>}
-        {section.href && <a className="article-link" href={section.href} target="_blank" rel="noopener noreferrer">{section.linkLabel}<span aria-hidden="true">↗</span></a>}
+        <h3>{section.href ? <a href={section.href} target="_blank" rel="noopener noreferrer">{section.title}</a> : section.title}</h3>
+        {section.paragraphs.map((paragraph, i) => <p key={i}>{section.id === 'music' ? <>{paragraph.split('SoundCloud')[0]}<a href="https://soundcloud.com/jigglniggl" target="_blank" rel="noopener noreferrer">SoundCloud</a>{paragraph.split('SoundCloud')[1]}</> : paragraph}</p>)}
+        {section.tracks?.map(track => <div key={track.id} className="article-player" aria-label={track.label + ' on SoundCloud'}>
+          <iframe title={track.label + ' on SoundCloud'} width="100%" height="120" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={'https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A' + track.id + '&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true'}/>
+          <a href={track.href} target="_blank" rel="noopener noreferrer">{track.label} ↗</a>
+        </div>)}
       </section>)}
-      <footer className="article-ending"><h3>There’s more to come.</h3><p>I’ll keep adding to this collection as the work develops. If something here resonates, or you’d like to talk about building something together, I’d be happy to hear from you.</p><a className="article-link" href="mailto:niklas@go-findus.tech">Say hello<span aria-hidden="true">↗</span></a><p className="article-last-line">For now, back to the mountains.</p></footer>
+      <footer className="article-ending"><p>With that said <a href="mailto:niklas@go-findus.tech">Hit me up</a> if you've want to build, do or yap about something sick.</p><p>I wish you a wonderful day :)</p></footer>
     </article>
   </main>;
 }

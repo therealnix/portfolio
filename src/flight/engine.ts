@@ -233,7 +233,7 @@ export function createMountainFlight(options: FlightOptions) {
         const colored = width >= 768 && sketch > .001 && paletteReady;
         canvas.style.mixBlendMode = colored ? 'normal' : 'difference';
         if (colored) {
-            // The landscape loses its color while the points recover that same color.
+            // Sample the current filtered scene palette for the transitioning points.
             // Source-in keeps the particle silhouettes and alpha; no per-pixel CPU readback.
             ctx.save();
             ctx.globalCompositeOperation = 'source-in';

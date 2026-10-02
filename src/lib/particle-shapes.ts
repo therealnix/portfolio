@@ -1,10 +1,11 @@
 import mascotOutline from '../assets/findus-outline.json';
 
-export type ParticleShape = 'findus' | 'shop' | 'music' | 'headphones' | 'spark' | 'modono' | 'linkedin' | 'email' | 'soundcloud';
+export type ParticleShape = 'findus' | 'shop' | 'music' | 'headphones' | 'spark' | 'modono' | 'linkedin' | 'email' | 'soundcloud' | 'car';
 export type Point = [number, number];
 
 // These paths are sampled into points; no solid icons are rendered in the scene.
 const outlines: Record<Exclude<ParticleShape, 'findus'>, string> = {
+  car: 'M38 126 L59 69 Q62 60 74 60 H182 Q194 60 197 69 L218 126 M59 108 L72 76 H184 L197 108 Z M38 126 Q27 132 27 147 V191 H229 V147 Q229 132 218 126 Z M27 166 H229 M48 139 H82 V153 H48 Z M174 139 H208 V153 H174 Z M100 141 H156 V154 H100 Z M39 191 V211 H70 V191 M186 191 V211 H217 V191',
   shop: 'M44 110 V209 H212 V110 M33 78 L50 43 H206 L223 78 Z M33 78 V99 Q51 126 71 99 V78 M71 99 Q90 126 109 99 V78 M109 99 Q128 126 147 99 V78 M147 99 Q166 126 185 99 V78 M185 99 Q204 126 223 99 V78 M68 138 H112 V184 H68 Z M142 209 V137 H188 V209 M153 172 H156',
   music: 'M101 178 V65 L204 44 V156 M101 89 L204 69 M101 178 C101 207 53 215 46 194 C39 174 83 160 101 178 M204 156 C204 185 156 193 149 172 C142 152 186 138 204 156',
   headphones: 'M45 158 V112 C45 11 211 11 211 112 V158 M45 117 H66 V190 H45 Q30 190 30 171 V139 Q30 117 45 117 M211 117 H190 V190 H211 Q226 190 226 171 V139 Q226 117 211 117 M91 124 V167 M110 100 V187 M129 114 V174 M148 96 V191 M167 128 V161',
