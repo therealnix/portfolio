@@ -1,113 +1,108 @@
-body.flight-mode { background:#071d32; overflow-x:hidden; scrollbar-width:none; }
+body.flight-mode { background:#10161f; overflow-x:hidden; scrollbar-width:none; }
 body.flight-mode::-webkit-scrollbar { display:none; }
-/* Two inks and the paper: the navy and amber of the print, cream for everything that is read. */
-.mountain-flight { position:relative; isolation:isolate; --reading:0; --veil:0; --contact:0; --sketch:0; --route:0; --route-height:0; --ink:#071d32; --amber:#f4b953; --paper:#fff3db; --ease:cubic-bezier(.2,.7,.1,1); font-family:var(--font-sans); }
-.flight-world,.flight-photograph,.flight-particles,.flight-vignette,.article-veil { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }
+/* Paper and two muted inks: the slate of the ridges and the ochre of the sunrise. */
+.mountain-flight { position:relative; isolation:isolate; --paper:#efe7d6; --ink:#18222d; --slate:#4f657b; --ochre:#a2691d; --sun:#c68f3c; --ease:cubic-bezier(.2,.7,.1,1); --column:min(660px,calc(100vw - 44px)); font-family:var(--font-sans); }
+.mountain-flight ::selection { background:#c68f3c59; }
+.flight-world,.flight-photograph,.flight-greeting,.flight-vignette,.article-veil { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }
 .flight-world { z-index:0; }
 .flight-world canvas { display:block;width:100%;height:100%; }
 .flight-photograph { z-index:1;overflow:hidden;will-change:opacity; }
 .flight-photograph img { width:100%;height:100%;object-fit:cover;object-position:center; }
-.flight-vignette { z-index:2;background:linear-gradient(180deg,#090b161a,transparent 25%,transparent 70%,#0a0b1240);opacity:calc(1 - var(--sketch)); }
-/* The text sits on the shadow side of the valley; the sunrise stays open on the right. */
-.article-veil { z-index:2;opacity:var(--veil);background:linear-gradient(0deg,#071d32b8,#071d3200 34%),linear-gradient(90deg,#071d32f2 0%,#071d32ea 24%,#071d32c4 40%,#071d3288 53%,#071d3240 65%,#071d3212 76%,#071d3200 86%); }
-.flight-particles { z-index:3;mix-blend-mode:difference; }
-.article-fade { position:fixed;z-index:6;left:0;top:0;width:calc(var(--clear-x,60vw) + 150px);height:100%;pointer-events:none;opacity:var(--veil);background:linear-gradient(180deg,#071d32 0,#071d3200 104px,#071d3200 calc(100% - 120px),#071d32e6 100%);mask-image:linear-gradient(90deg,#000 62%,#0000); }
+.flight-vignette { z-index:2;background:linear-gradient(180deg,#090b161a,transparent 25%,transparent 70%,#0a0b1240); }
+/* A sheet of paper under the centred column; the print stays open in both margins. */
+.article-veil { z-index:2;opacity:0;visibility:hidden;background:var(--grain,none),linear-gradient(90deg,#efe7d600 calc(50% - var(--column) / 2 - 250px),#efe7d6c9 calc(50% - var(--column) / 2 - 130px),#efe7d6 calc(50% - var(--column) / 2 - 56px),#efe7d6 calc(50% + var(--column) / 2 + 56px),#efe7d6c9 calc(50% + var(--column) / 2 + 130px),#efe7d600 calc(50% + var(--column) / 2 + 250px)); }
+.flight-greeting { z-index:3;mix-blend-mode:difference; }
 
-/* Contact stage: the closing title is cut from the sky the way the opening greeting is. */
-.contact-title { position:fixed;z-index:4;left:0;top:15vh;width:100%;margin:0;text-align:center;font:900 clamp(44px,9.4vw,172px)/.9 var(--font-sans);letter-spacing:-.065em;color:#fff;mix-blend-mode:difference;opacity:var(--contact);visibility:hidden;pointer-events:none;transform:translateY(calc((1 - var(--contact)) * 30px)); }
-.contact-links { position:fixed;z-index:4;left:50%;top:calc(56vh - 112px);width:min(820px,84vw);height:232px;display:grid;grid-template-columns:repeat(3,1fr);opacity:var(--contact);visibility:hidden;transform:translateX(-50%);color:var(--paper); }
-.contact-links a { display:flex;align-items:flex-end;justify-content:center;padding:0 0 8px;color:inherit;font:600 12px/1 var(--font-sans);letter-spacing:.14em;text-decoration:none;border-radius:12px;cursor:pointer; }
-.contact-links a span { border-bottom:1px solid #f4b95380;padding-bottom:8px;transition:border-color .2s,color .2s,transform .2s; }
-.contact-links a:hover span,.contact-links a:focus-visible span { border-color:var(--amber);color:var(--amber);transform:translateY(-3px); }
-.contact-links a:focus-visible { outline:1px solid var(--amber);outline-offset:0; }
-.contact-links svg { display:none;fill:none;stroke:var(--amber);stroke-width:11;stroke-linecap:round;stroke-linejoin:round; }
+/* Line drawings: one stroke after the other, once. */
+.sketch { overflow:visible;fill:none;stroke:#3b4f64;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round; }
+.sketch path { stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.5s var(--ease) calc(.25s + var(--n) * .13s); }
+.sketch.is-in path,.is-in .sketch path,.is-static .sketch path { stroke-dashoffset:0; }
 
-/* The route: an elevation profile of the article with a summit at every section. */
-.flight-trail { position:fixed;z-index:6;left:calc(var(--stage-x,75vw) - var(--trail-width,300px) / 2);width:var(--trail-width,300px);bottom:64px;height:var(--trail-height);--trail-height:54px;opacity:var(--reading);color:var(--amber); }
-.flight-trail svg { position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linejoin:round; }
-.trail-ground { opacity:.3; }
-.trail-walked { position:absolute;inset:0;clip-path:inset(-14px calc((1 - var(--route)) * 100%) 0 0); }
-.trail-area { stroke:none;fill:url(#trail-fill); }
-.trail-marker { position:absolute;left:calc(var(--route) * 100%);bottom:calc(var(--route-height) * 100%);width:9px;height:9px;margin:0 0 -4.5px -4.5px;border-radius:50%;background:var(--paper);box-shadow:0 0 0 4px #f4b95347; }
-.flight-trail button { position:absolute;top:100%;transform:translateX(-50%);padding:13px 9px 8px;font:700 10px/1 var(--font-sans);letter-spacing:.16em;color:#f4b9538c;cursor:pointer;transition:color .3s; }
-.flight-trail button i { position:absolute;left:50%;bottom:100%;width:1px;height:calc(var(--summit) * var(--trail-height));background:linear-gradient(0deg,#f4b95300,#f4b95373); }
-.flight-trail button.is-passed { color:var(--amber); }
-.flight-trail button.is-current,.flight-trail button:hover { color:var(--paper); }
+/* Contact stage: the same paper, the title in the weight of the greeting. */
+.contact-stage { position:fixed;z-index:4;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(26px,5.5vh,58px);opacity:0;visibility:hidden;pointer-events:none;color:var(--ink);background:radial-gradient(ellipse 64% 60% at 50% 50%,#efe7d6f2 0%,#efe7d6de 46%,#efe7d600 100%); }
+.contact-title { margin:0;text-align:center;font:900 clamp(44px,8.6vw,150px)/.92 var(--font-sans);letter-spacing:-.065em; }
+.contact-links { display:grid;grid-template-columns:repeat(3,1fr);width:min(760px,84vw);pointer-events:auto; }
+.contact-links a { display:flex;flex-direction:column;align-items:center;gap:20px;padding:16px 0;color:inherit;font:600 12px/1 var(--font-sans);letter-spacing:.14em;text-decoration:none;border-radius:12px;cursor:pointer; }
+.contact-links a span { border-bottom:1px solid #a2691d80;padding-bottom:8px;transition:border-color .2s,color .2s; }
+.contact-sketch { width:clamp(64px,8vw,104px);transition:transform .3s var(--ease); }
+.contact-links a:hover .contact-sketch,.contact-links a:focus-visible .contact-sketch { transform:translateY(-5px); }
+.contact-links a:hover span,.contact-links a:focus-visible span { border-color:var(--ochre);color:var(--ochre); }
+.contact-links a:focus-visible { outline:1px solid var(--ochre);outline-offset:0; }
+
+/* The route: an elevation profile of the article under the column, with a summit at every section. */
+.flight-trail { position:fixed;z-index:6;left:50%;bottom:40px;width:var(--column);height:24px;margin-left:calc(var(--column) / -2);opacity:0;visibility:hidden;color:var(--slate); }
+.flight-trail::before { content:'';position:absolute;left:-52px;right:-52px;top:-56px;bottom:-40px;background:var(--grain,none),linear-gradient(180deg,#efe7d600,#efe7d6 58%);pointer-events:none; }
+.flight-trail svg { position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round; }
+.trail-ground { opacity:.34; }
+.trail-walked { position:absolute;inset:0;color:var(--sun);clip-path:inset(-12px 100% -4px 0); }
+.trail-marker { position:absolute;left:0;bottom:0;width:8px;height:8px;margin:0 0 -4px -4px;border-radius:50%;background:var(--ochre);box-shadow:0 0 0 3px var(--paper); }
+.flight-trail button { position:absolute;top:100%;transform:translateX(-50%);padding:9px 9px 7px;font:700 9px/1 var(--font-sans);letter-spacing:.16em;color:#18222d66;cursor:pointer;transition:color .3s; }
+.flight-trail button.is-passed { color:var(--ochre); }
+.flight-trail button.is-current,.flight-trail button:hover { color:var(--ink); }
 .flight-trail button:focus-visible { outline-offset:0; }
-.trail-name { position:absolute;left:0;bottom:calc(100% + 22px);margin:0;font:900 17px/1 var(--font-sans);letter-spacing:-.03em;color:var(--paper);white-space:nowrap; }
-.trail-name span { margin-right:12px;font-weight:700;font-size:10px;letter-spacing:.16em;color:var(--amber);vertical-align:.25em; }
-.flight-progress { display:none;position:fixed;z-index:6;left:0;top:0;width:100%;height:2px;background:var(--amber);transform-origin:0 50%;transform:scaleX(var(--route));opacity:var(--reading);pointer-events:none; }
 
 .flight-intro { position:fixed;inset:0;z-index:4;pointer-events:none;color:#fff9ea; }
 .flight-begin { position:absolute;bottom:72px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:14px;font-size:8px;letter-spacing:.24em;cursor:pointer;padding:15px;pointer-events:auto; }
 .flight-begin > span:last-child { font-size:20px;font-weight:200; }
 
-/* The article: display type in the weight of the greeting, the writing itself in a book serif. */
-.portfolio-article { position:absolute;z-index:5;left:clamp(28px,6vw,112px);width:min(620px,50vw);max-width:calc(100% - 56px);text-align:left;color:var(--paper);font:19px/1.82 Georgia,'Times New Roman',serif;visibility:hidden;padding:0 0 130px; }
-.portfolio-article { opacity:var(--article-opacity,0);transform:translateX(var(--article-offset,0px)); }
-.is-static .portfolio-article { opacity:1;transform:none; }
-.article-heading { margin-bottom:30px; }
-.article-byline { display:flex;align-items:center;gap:14px;font:600 12px/1 var(--font-sans);letter-spacing:.06em;color:var(--amber);margin-bottom:30px !important; }
-.article-byline::before { content:'';width:46px;height:1px;background:currentColor; }
-.article-heading h2 { font:900 clamp(62px,8.2vw,136px)/.88 var(--font-sans);letter-spacing:-.065em;margin:0 0 36px -.045em; }
-.article-heading h2::first-line { color:var(--amber); }
-.portfolio-article .article-deck { font:22px/1.5 Georgia,serif;color:#f3dcb4; }
+/* The article: one centred column. Display type in the weight of the greeting, the writing in a book serif. */
+.portfolio-article { position:absolute;z-index:5;left:0;right:0;width:var(--column);margin:0 auto;text-align:left;color:var(--ink);font:19px/1.8 Georgia,'Times New Roman',serif;padding:0 0 170px; }
+.article-heading { margin-bottom:30px;text-align:center; }
+.article-byline { display:flex;align-items:center;justify-content:center;gap:14px;font:600 12px/1 var(--font-sans);letter-spacing:.06em;color:var(--ochre);margin-bottom:30px !important; }
+.article-byline::before,.article-byline::after { content:'';width:46px;height:1px;background:currentColor;opacity:.6; }
+.article-heading h2 { font:900 clamp(62px,8.4vw,132px)/.88 var(--font-sans);letter-spacing:-.065em;margin:0 0 36px; }
+.article-heading h2::first-line { color:var(--sun); }
+.portfolio-article .article-deck { max-width:29em;margin-inline:auto;font:22px/1.5 Georgia,serif;color:#39485a; }
 .portfolio-article p { margin:0 0 1.35em; }
-.article-section { position:relative;margin-top:118px; }
-.section-mark { display:flex;align-items:flex-end;gap:18px;margin-bottom:26px;color:var(--amber);font:700 11px/1 var(--font-sans);letter-spacing:.2em; }
+.article-section { position:relative;margin-top:112px; }
+.section-mark { display:flex;align-items:flex-end;gap:18px;margin-bottom:26px;color:var(--ochre);font:700 11px/1 var(--font-sans);letter-spacing:.2em; }
 .section-mark svg { flex:1;min-width:0;height:26px;overflow:visible; }
-.section-mark path { fill:none;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.8s var(--ease) .15s; }
+.section-mark path { fill:none;stroke:var(--sun);stroke-width:1.6;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.8s var(--ease) .15s; }
 .section-mark.is-in path,.is-static .section-mark path { stroke-dashoffset:0; }
-.portfolio-article h3 { font:900 clamp(34px,3.8vw,56px)/1 var(--font-sans);letter-spacing:-.055em;margin:0 0 26px -.03em; }
-.portfolio-article h3 a::after { content:'↗';display:inline-block;margin-left:.3em;font-weight:500;font-size:.46em;letter-spacing:0;color:var(--amber);vertical-align:.7em;transition:transform .25s var(--ease); }
+/* The drawing sits at the right of the section opening, beside the ridgeline and the title. */
+.article-section > .section-mark,.article-section > h3 { margin-right:158px; }
+.section-sketch { position:absolute;top:-14px;right:0;width:132px; }
+.portfolio-article h3 { font:900 clamp(34px,3.8vw,54px)/1 var(--font-sans);letter-spacing:-.055em;margin-bottom:28px; }
+.portfolio-article h3 a::after { content:'↗';display:inline-block;margin-left:.3em;font-weight:500;font-size:.46em;letter-spacing:0;color:var(--ochre);vertical-align:.7em;transition:transform .25s var(--ease); }
 .portfolio-article h3 a:hover::after { transform:translate(4px,-4px); }
-.reveal { opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform 1.2s var(--ease); }
+.reveal { opacity:0;transform:translateY(22px);transition:opacity .9s var(--ease),transform 1.2s var(--ease); }
 .reveal.is-in,.is-static .reveal { opacity:1;transform:none; }
-.is-static .reveal,.is-static .section-mark path { transition:none; }
-.article-player { position:relative;width:100%;margin:30px 0;padding:10px 10px 0;border:1px solid #f4b95359;border-radius:7px;background:#071d32a6; }
+.is-static .reveal,.is-static .section-mark path,.is-static .sketch path { transition:none; }
+.article-player { position:relative;width:100%;margin:30px 0;padding:10px 10px 0;border:1px solid #18222d2b;border-radius:7px;background:#fbf6ea; }
 .article-player iframe { width:100%;height:120px;display:block;border:0;border-radius:3px; }
-.article-player > a { display:block;font:600 11px/1 var(--font-sans);letter-spacing:.08em;color:var(--amber);text-decoration:none;padding:13px 2px; }
-.article-player > a:hover { color:var(--paper); }
-.article-ending { margin-top:118px; }
+.article-player > a { display:block;font:600 11px/1 var(--font-sans);letter-spacing:.08em;color:var(--ochre);text-decoration:none;padding:13px 2px; }
+.article-player > a:hover { color:var(--ink); }
+.article-ending { margin-top:112px;text-align:center; }
 .article-ending p:first-of-type { font:italic 27px/1.42 Georgia,serif;margin-bottom:1.1em; }
-.article-ending p:last-of-type { font:600 12px/1.5 var(--font-sans);letter-spacing:.06em;color:var(--amber); }
-.mountain-flight :focus-visible { outline:2px solid var(--amber);outline-offset:6px; }
-.portfolio-article p a,.portfolio-article h3 a { color:inherit;text-decoration:underline;text-decoration-color:#f4b953a8;text-decoration-thickness:1px;text-underline-offset:5px; }
+.article-ending p:last-of-type { font:600 12px/1.5 var(--font-sans);letter-spacing:.06em;color:var(--ochre); }
+.mountain-flight :focus-visible { outline:2px solid var(--ochre);outline-offset:6px; }
+.portfolio-article p a,.portfolio-article h3 a { color:inherit;text-decoration:underline;text-decoration-color:#a2691db3;text-decoration-thickness:1px;text-underline-offset:5px; }
 .portfolio-article h3 a { text-decoration:none; }
-.portfolio-article p a:hover { color:var(--amber);text-decoration-color:currentColor; }
-.portfolio-article h3 a:hover { color:var(--amber); }
+.portfolio-article p a:hover,.portfolio-article h3 a:hover { color:var(--ochre);text-decoration-color:currentColor; }
 
-.is-static > div:first-child,.is-static .flight-intro,.is-static .flight-particles,.is-static .contact-links,.is-static .contact-title,.is-static .flight-trail,.is-static .flight-progress { display:none; }
-.is-static .portfolio-article { position:relative;top:auto !important;visibility:visible !important;padding-top:100px;padding-bottom:100px; }
-.is-static .article-veil,.is-static .article-fade { opacity:1; }
-.is-static .flight-photograph { opacity:1 !important; }
-@media(max-width:1279px) {
-  .portfolio-article { width:54%; }
-}
-@media(max-width:959px) {
-  .flight-trail { display:none; }
-  .flight-progress { display:block; }
-}
+.is-static > div:first-child,.is-static .flight-intro,.is-static .flight-greeting,.is-static .contact-stage,.is-static .flight-trail { display:none; }
+.is-static .portfolio-article { position:relative;top:auto !important;padding-top:100px;padding-bottom:100px; }
+.is-static .article-veil { opacity:1 !important;visibility:visible !important; }
+.is-static .flight-photograph { opacity:1 !important;visibility:visible !important; }
 @media(max-width:767px) {
-  .portfolio-article { left:22px;width:calc(100% - 44px);max-width:none;font-size:17px;line-height:1.82; }
+  .portfolio-article { font-size:17px; }
   .article-heading h2 { font-size:19vw; }
   .portfolio-article .article-deck { font-size:19px; }
-  .portfolio-article h3 { font-size:36px; }
+  .portfolio-article h3 { font-size:34px; }
   .article-section,.article-ending { margin-top:84px; }
+  .article-section > .section-mark,.article-section > h3 { margin-right:92px; }
+  .section-sketch { width:76px; }
   .article-ending p:first-of-type { font-size:23px; }
-  .article-veil { background:linear-gradient(180deg,#071d32a6,#071d32c2 36%,#071d32de); }
-  .article-fade { width:100%;mask-image:none; }
+  .article-veil { background:var(--grain,none),#efe7d6ef; }
   .flight-begin { bottom:65px; }
-  .contact-title { top:14vh;font-size:14.6vw; }
-  .contact-links { top:auto;bottom:13vh;width:calc(100% - 44px);height:auto;grid-template-columns:1fr; }
-  .contact-links a { justify-content:flex-start;align-items:center;gap:18px;padding:17px 2px;border-top:1px solid #fff3db38;border-radius:0;font-size:14px; }
-  .contact-links a:last-child { border-bottom:1px solid #fff3db38; }
+  .flight-trail { bottom:22px;height:18px; }
+  .flight-trail button { display:none; }
+  .contact-stage { background:#efe7d6d6; }
+  .contact-title { font-size:14.6vw; }
+  .contact-links { grid-template-columns:1fr;width:calc(100% - 44px); }
+  .contact-links a { flex-direction:row;gap:20px;padding:15px 2px;border-top:1px solid #18222d2e;border-radius:0;font-size:14px; }
+  .contact-links a:last-child { border-bottom:1px solid #18222d2e; }
   .contact-links a span { border:0;padding:0; }
-  .contact-links svg { display:block;width:30px;height:30px; }
+  .contact-sketch { width:34px;stroke-width:9; }
 }
-@media(prefers-reduced-motion:no-preference) {
-  /* A slow glint travels through the list of things, one after the other. */
-  .article-things span { animation:glint 9.2s linear infinite;animation-delay:calc(var(--i) * .4s); }
-}
-@keyframes glint { 0%,7%,100% { color:inherit; } 3% { color:var(--amber); } }
 @media(prefers-reduced-motion:reduce) { .mountain-flight * { scroll-behavior:auto !important; } }

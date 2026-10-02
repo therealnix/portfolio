@@ -34,9 +34,12 @@ of writing (Substack style) with players and buttons placed in the flow.
 
 The flight experiment lives on `codex/mountain-flight-experiment`.
 `claude/mountain-flight-base` is that branch plus the last Codex session's work
-and this file, committed 2026-10-02. `claude/mountain-flight-rework` (also
-2026-10-02) is the visual rework of everything after the fly-by, built on that
-base; branch new flight work from the rework once it is accepted. The finished
+and this file, committed 2026-10-02. Two versions of everything after the
+fly-by were built on that base on 2026-10-02: `claude/mountain-flight-rework`
+(navy and amber print, particle figures, text on the left) and, on top of it,
+`claude/mountain-flight-paper` (muted paper print, centred text, line drawings,
+much lighter to run). Branch new flight work from whichever one is accepted. The
+finished
 galaxy version is preserved at commit `b53ef22` on `feature/ui-improvements`.
 Keep experiments on their own branch.
 
@@ -80,7 +83,7 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
   removed. Changes to visibility or click handling around the embeds broke
   browsing in the players once and were reverted.
 - `npm run test:flight` had 11 passing tests at the end of the last Codex
-  session and has 13 after the rework.
+  session, 13 after the rework and 14 on the paper version.
 
 ## Rework of 2026-10-02
 
@@ -93,3 +96,18 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
   purpose. The intro button still reads "get to kow me" (typo left as written).
 - The Browser pane crops screenshots when it is hidden. Full-size checks were
   done with headless Edge over the DevTools protocol instead.
+
+## Paper version of 2026-10-02
+
+- Requested after the rework: text centred and in focus, a less vibrant,
+  paper-like colour scheme that still fits the opening photo, drawings instead
+  of particles, and much better performance (the particle version lagged
+  badly). The user had tried a paper look before and could not make it work
+  with the home screen, so the print keeps the photo's two colour families
+  (slate and ochre) on warm paper.
+- Keep it subtle and clean: nothing in the article animates per frame, and the
+  engine loop sleeps when the camera is at rest. Do not reintroduce particles,
+  SVG filters or continuous animations here without measuring.
+- The remaining slow frames come from the two SoundCloud widgets loading. A
+  click-to-load placeholder would remove them but changes the embeds, which the
+  user has ruled out so far; ask before doing that.

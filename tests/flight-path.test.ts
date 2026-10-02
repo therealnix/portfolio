@@ -5,6 +5,7 @@ import { photoDepth, photoPoint, PHOTO_TAN, PHOTO_ASPECT } from '../src/flight/p
 import { journeyAt, journeyMetrics, remapJourneyOffset, READING_CAMERA } from '../src/flight/journey.ts';
 import { ARTICLE_SECTIONS } from '../src/flight/article-content.ts';
 import { RIDGES, ridgePath, trailHeight, trailPath } from '../src/flight/ridges.ts';
+import { CONTACT_SKETCHES, SKETCHES, strokes } from '../src/flight/sketches.ts';
 
 test('music is one particle stage with the two tracks at its boundaries', () => {
     const musicSections = ARTICLE_SECTIONS.filter(section => section.shape === 'music');
@@ -36,10 +37,10 @@ test('the camera holds still through the article body with short motion overlaps
         assert.equal(m.reading, articleHeight + 900);
         const entering = journeyAt(m.approach + 300, m);
         assert.equal(entering.reading, true);
-        assert.ok(entering.textOpacity > 0 && entering.phase < READING_CAMERA);
+        assert.ok(entering.sheet > .9 && entering.phase < READING_CAMERA);
         const leaving = journeyAt(m.approach + m.reading - 300, m);
         assert.equal(leaving.reading, true);
-        assert.ok(leaving.textOpacity > 0 && leaving.phase > READING_CAMERA);
+        assert.ok(leaving.sheet === 1 && leaving.phase > READING_CAMERA);
         assert.ok(journeyAt(m.approach + m.reading + 50, m).phase > READING_CAMERA);
     }
 });
@@ -125,26 +126,6 @@ test('depth-projected photo coordinates reproduce the original image at the open
             assert.ok(Math.abs(.5 - p.y / (-p.z * PHOTO_TAN * 2) - v) < 1e-10);
         }
 });
-test('the reading glide crosses the article once and is at rest wherever the photograph shows', () => {
-    const m = journeyMetrics(900, 4500);
-    let previous = -Infinity;
-    for (let offset = m.viewport * .9; offset <= m.reading - m.viewport * .75; offset += 23) {
-        const state = journeyAt(m.approach + offset, m);
-        assert.equal(state.phase, READING_CAMERA);
-        assert.ok(state.drift > previous && Math.abs(state.drift) <= 1);
-        previous = state.drift;
-    }
-    assert.ok(journeyAt(m.approach + m.viewport, m).drift < -.5);
-    assert.ok(journeyAt(m.approach + m.reading - m.viewport, m).drift > .5);
-    for (let offset = 0; offset < m.length; offset += 5) {
-        const state = journeyAt(offset, m);
-        // No jump anywhere along the loop, including where the article starts and ends.
-        assert.ok(Math.abs(journeyAt(offset + 5, m).drift - state.drift) < .02);
-        if (photoOpacity(state.phase) > 0)
-            assert.equal(Math.abs(state.drift), 0);
-        assert.ok(state.progress >= 0 && state.progress <= 1);
-    }
-});
 test('the route profile has a summit on every stop and one ridgeline for every section', () => {
     const stops = [.21, .36, .5, .66, .86];
     for (const stop of stops) {
@@ -159,4 +140,23 @@ test('the route profile has a summit on every stop and one ridgeline for every s
     assert.ok(trailPath(stops, 1000, 100, true).endsWith('Z'));
     assert.equal(RIDGES.length, ARTICLE_SECTIONS.length);
     RIDGES.forEach((_, index) => assert.match(ridgePath(index, 600, 26), /^M0\.0 [\d.]+ L/));
+});
+test('every section and every contact link has a line drawing made of separate strokes', () => {
+    for (const section of ARTICLE_SECTIONS) {
+        const drawing = strokes(SKETCHES[section.shape]);
+        assert.ok(drawing.length >= 2);
+        drawing.forEach(stroke => assert.match(stroke, /^M[\d.-]+ [\d.-]+ /));
+    }
+    assert.equal(strokes(SKETCHES.music).length, 6);
+    assert.deepEqual(Object.keys(CONTACT_SKETCHES), ['linkedin', 'email', 'soundcloud']);
+});
+test('the paper sheet is in place before the first line and gone on both flight legs', () => {
+    const m = journeyMetrics(900, 4500);
+    assert.equal(journeyAt(m.approach * .5, m).sheet, 0);
+    assert.ok(journeyAt(m.approach, m).sheet > .85);
+    for (let offset = m.viewport * .2; offset <= m.reading - m.viewport * .2; offset += 31)
+        assert.equal(journeyAt(m.approach + offset, m).sheet, 1);
+    assert.ok(journeyAt(m.approach + m.reading, m).sheet > .85);
+    assert.equal(journeyAt(m.approach + m.reading + m.departure * .3, m).sheet, 0);
+    assert.equal(journeyAt(0, m).sheet, 0);
 });

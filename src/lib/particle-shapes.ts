@@ -16,9 +16,6 @@ const outlines: Record<Exclude<ParticleShape, 'findus'>, string> = {
   soundcloud: 'M20 142 V167 M35 127 V180 M50 113 V184 M65 98 V184 M80 108 V184 M95 83 V184 M110 70 V184 M126 184 V66 C156 52 189 76 193 114 C244 101 260 184 215 184 Z',
 };
 
-/** The same contact outlines as plain SVG path data, for views that draw no particles. */
-export const CONTACT_OUTLINES = { linkedin: outlines.linkedin, email: outlines.email, soundcloud: outlines.soundcloud };
-
 function normalize(points: Point[]): Point[] {
   if (!points.length) return [];
   let minX = 256, minY = 256, maxX = 0, maxY = 0;
