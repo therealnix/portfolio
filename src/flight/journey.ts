@@ -20,13 +20,13 @@ export function journeyAt(offset: number, metrics: JourneyMetrics) {
             : READING_CAMERA + (1 - READING_CAMERA) * smoothstep(holdEnd, metrics.length, local);
     const reveal = reading ? smoothstep(0, metrics.viewport * .65, readOffset)
         * (1 - smoothstep(metrics.reading - metrics.viewport * .8, metrics.reading, readOffset)) : 0;
-    // The sheet of paper is in place just before the first line scrolls in and stays until the last one has left.
-    const sheet = smoothstep(-metrics.viewport * .55, metrics.viewport * .12, readOffset)
-        * (1 - smoothstep(metrics.reading - metrics.viewport * .1, metrics.reading + metrics.viewport * .4, readOffset));
     const contactStart = metrics.approach + metrics.reading;
     const contactDuration = metrics.departure * .62;
     const contactRaw = clamp((local - contactStart) / contactDuration);
     const contact = local > contactStart ? smoothstep(0, .12, contactRaw) * (1 - smoothstep(.82, 1, contactRaw)) : 0;
+    // The sheet of paper comes down just before the first line scrolls in, carries the article
+    // and the contact stage, and lifts again as the contact stage leaves.
+    const sheet = smoothstep(-metrics.viewport * .55, metrics.viewport * .12, readOffset) * (1 - smoothstep(.8, 1, contactRaw));
     // The route runs from the first line of the article to the last.
     const progress = clamp(readOffset / metrics.reading);
     return { local, phase: Math.min(phase, 1 - 1e-9), reading, holding, readOffset, reveal, sheet, contact, progress };

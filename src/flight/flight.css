@@ -1,16 +1,16 @@
 body.flight-mode { background:#10161f; overflow-x:hidden; scrollbar-width:none; }
 body.flight-mode::-webkit-scrollbar { display:none; }
 /* Paper and two muted inks: the slate of the ridges and the ochre of the sunrise. */
-.mountain-flight { position:relative; isolation:isolate; --paper:#efe7d6; --ink:#18222d; --slate:#4f657b; --ochre:#a2691d; --sun:#c68f3c; --ease:cubic-bezier(.2,.7,.1,1); --column:min(660px,calc(100vw - 44px)); font-family:var(--font-sans); }
+.mountain-flight { position:relative; isolation:isolate; --paper:#efe7d6; --ink:#18222d; --slate:#4f657b; --ochre:#a2691d; --sun:#c68f3c; --ease:cubic-bezier(.2,.7,.1,1); --column:min(660px,calc(100vw - 44px)); --strip:27vh; --profile:24px; font-family:var(--font-sans); }
 .mountain-flight ::selection { background:#c68f3c59; }
-.flight-world,.flight-photograph,.flight-greeting,.flight-vignette,.article-veil { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }
+.flight-world,.flight-photograph,.flight-greeting,.flight-vignette { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }
 .flight-world { z-index:0; }
 .flight-world canvas { display:block;width:100%;height:100%; }
 .flight-photograph { z-index:1;overflow:hidden;will-change:opacity; }
 .flight-photograph img { width:100%;height:100%;object-fit:cover;object-position:center; }
 .flight-vignette { z-index:2;background:linear-gradient(180deg,#090b161a,transparent 25%,transparent 70%,#0a0b1240); }
-/* A sheet of paper under the centred column; the print stays open in both margins. */
-.article-veil { z-index:2;opacity:0;visibility:hidden;background:var(--grain,none),linear-gradient(90deg,#efe7d600 calc(50% - var(--column) / 2 - 250px),#efe7d6c9 calc(50% - var(--column) / 2 - 130px),#efe7d6 calc(50% - var(--column) / 2 - 56px),#efe7d6 calc(50% + var(--column) / 2 + 56px),#efe7d6c9 calc(50% + var(--column) / 2 + 130px),#efe7d600 calc(50% + var(--column) / 2 + 250px)); }
+/* A sheet of paper that comes down like a blind. Below it the print stays open as a strip of landscape. */
+.article-veil { position:fixed;z-index:2;left:0;top:0;width:100%;height:calc(100% - var(--strip));visibility:hidden;pointer-events:none;background:var(--grain,none),var(--paper);border-bottom:1px solid #18222d2e; }
 .flight-greeting { z-index:3;mix-blend-mode:difference; }
 
 /* Line drawings: one stroke after the other, once. */
@@ -18,9 +18,9 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .sketch path { stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.5s var(--ease) calc(.25s + var(--n) * .13s); }
 .sketch.is-in path,.is-in .sketch path,.is-static .sketch path { stroke-dashoffset:0; }
 
-/* Contact stage: the same paper, the title in the weight of the greeting. */
-.contact-stage { position:fixed;z-index:4;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(26px,5.5vh,58px);opacity:0;visibility:hidden;pointer-events:none;color:var(--ink);background:radial-gradient(ellipse 64% 60% at 50% 50%,#efe7d6f2 0%,#efe7d6de 46%,#efe7d600 100%); }
-.contact-title { margin:0;text-align:center;font:900 clamp(44px,8.6vw,150px)/.92 var(--font-sans);letter-spacing:-.065em; }
+/* Contact stage: on the same sheet of paper, above the strip, the title in the weight of the greeting. */
+.contact-stage { position:fixed;z-index:4;left:0;top:0;width:100%;height:calc(100% - var(--strip));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(22px,4.6vh,50px);opacity:0;visibility:hidden;pointer-events:none;color:var(--ink); }
+.contact-title { margin:0;text-align:center;font:900 clamp(44px,8.2vw,138px)/.92 var(--font-sans);letter-spacing:-.065em; }
 .contact-links { display:grid;grid-template-columns:repeat(3,1fr);width:min(760px,84vw);pointer-events:auto; }
 .contact-links a { display:flex;flex-direction:column;align-items:center;gap:20px;padding:16px 0;color:inherit;font:600 12px/1 var(--font-sans);letter-spacing:.14em;text-decoration:none;border-radius:12px;cursor:pointer; }
 .contact-links a span { border-bottom:1px solid #a2691d80;padding-bottom:8px;transition:border-color .2s,color .2s; }
@@ -29,14 +29,17 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .contact-links a:hover span,.contact-links a:focus-visible span { border-color:var(--ochre);color:var(--ochre); }
 .contact-links a:focus-visible { outline:1px solid var(--ochre);outline-offset:0; }
 
-/* The route: an elevation profile of the article under the column, with a summit at every section. */
-.flight-trail { position:fixed;z-index:6;left:50%;bottom:40px;width:var(--column);height:24px;margin-left:calc(var(--column) / -2);opacity:0;visibility:hidden;color:var(--slate); }
-.flight-trail::before { content:'';position:absolute;left:-52px;right:-52px;top:-56px;bottom:-40px;background:var(--grain,none),linear-gradient(180deg,#efe7d600,#efe7d6 58%);pointer-events:none; }
+/* The route: an elevation profile of the article with a summit at every section. It has its own band of paper
+   directly above the landscape strip; the text scrolls away underneath it. */
+.flight-trail { position:fixed;z-index:7;left:50%;bottom:var(--strip);width:var(--column);height:calc(var(--profile) + 30px);margin-left:calc(var(--column) / -2);opacity:0;visibility:hidden;color:var(--slate); }
+.trail-paper { position:absolute;left:calc(50% - 50vw);width:100vw;top:-16px;bottom:0;background:var(--grain,none),var(--paper); }
+.trail-paper::before { content:'';position:absolute;left:0;right:0;bottom:100%;height:22px;background:linear-gradient(180deg,#efe7d600,var(--paper)); }
+.trail-profile { position:absolute;left:0;top:0;width:100%;height:var(--profile); }
 .flight-trail svg { position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round; }
-.trail-ground { opacity:.34; }
+.trail-ground { opacity:.5; }
 .trail-walked { position:absolute;inset:0;color:var(--sun);clip-path:inset(-12px 100% -4px 0); }
 .trail-marker { position:absolute;left:0;bottom:0;width:8px;height:8px;margin:0 0 -4px -4px;border-radius:50%;background:var(--ochre);box-shadow:0 0 0 3px var(--paper); }
-.flight-trail button { position:absolute;top:100%;transform:translateX(-50%);padding:9px 9px 7px;font:700 9px/1 var(--font-sans);letter-spacing:.16em;color:#18222d66;cursor:pointer;transition:color .3s; }
+.flight-trail button { position:absolute;top:var(--profile);transform:translateX(-50%);padding:9px 9px 7px;font:700 9px/1 var(--font-sans);letter-spacing:.16em;color:#18222d66;cursor:pointer;transition:color .3s; }
 .flight-trail button.is-passed { color:var(--ochre); }
 .flight-trail button.is-current,.flight-trail button:hover { color:var(--ink); }
 .flight-trail button:focus-visible { outline-offset:0; }
@@ -46,7 +49,7 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .flight-begin > span:last-child { font-size:20px;font-weight:200; }
 
 /* The article: one centred column. Display type in the weight of the greeting, the writing in a book serif. */
-.portfolio-article { position:absolute;z-index:5;left:0;right:0;width:var(--column);margin:0 auto;text-align:left;color:var(--ink);font:19px/1.8 Georgia,'Times New Roman',serif;padding:0 0 170px; }
+.portfolio-article { position:absolute;z-index:5;left:0;right:0;width:var(--column);margin:0 auto;text-align:left;color:var(--ink);font:19px/1.8 Georgia,'Times New Roman',serif;padding:0 0 calc(150px + var(--strip)); }
 .article-heading { margin-bottom:30px;text-align:center; }
 .article-byline { display:flex;align-items:center;justify-content:center;gap:14px;font:600 12px/1 var(--font-sans);letter-spacing:.06em;color:var(--ochre);margin-bottom:30px !important; }
 .article-byline::before,.article-byline::after { content:'';width:46px;height:1px;background:currentColor;opacity:.6; }
@@ -81,9 +84,11 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .portfolio-article p a:hover,.portfolio-article h3 a:hover { color:var(--ochre);text-decoration-color:currentColor; }
 
 .is-static > div:first-child,.is-static .flight-intro,.is-static .flight-greeting,.is-static .contact-stage,.is-static .flight-trail { display:none; }
-.is-static .portfolio-article { position:relative;top:auto !important;padding-top:100px;padding-bottom:100px; }
-.is-static .article-veil { opacity:1 !important;visibility:visible !important; }
-.is-static .flight-photograph { opacity:1 !important;visibility:visible !important; }
+.is-static .portfolio-article { position:relative;top:auto !important;padding-top:90px;padding-bottom:110px; }
+.is-static .article-veil { height:100%;border:0;visibility:visible !important;transform:none !important; }
+/* Without the flight the page is a plain article: the photograph as its opening picture, then the text on paper. */
+.is-static .flight-photograph { position:relative;inset:auto;z-index:3;height:78vh;opacity:1 !important;transform:none !important; }
+.is-static .flight-vignette { display:none; }
 @media(max-width:767px) {
   .portfolio-article { font-size:17px; }
   .article-heading h2 { font-size:19vw; }
@@ -93,11 +98,10 @@ body.flight-mode::-webkit-scrollbar { display:none; }
   .article-section > .section-mark,.article-section > h3 { margin-right:92px; }
   .section-sketch { width:76px; }
   .article-ending p:first-of-type { font-size:23px; }
-  .article-veil { background:var(--grain,none),#efe7d6ef; }
   .flight-begin { bottom:65px; }
-  .flight-trail { bottom:22px;height:18px; }
+  .mountain-flight { --strip:23vh;--profile:18px; }
+  .flight-trail { height:calc(var(--profile) + 14px); }
   .flight-trail button { display:none; }
-  .contact-stage { background:#efe7d6d6; }
   .contact-title { font-size:14.6vw; }
   .contact-links { grid-template-columns:1fr;width:calc(100% - 44px); }
   .contact-links a { flex-direction:row;gap:20px;padding:15px 2px;border-top:1px solid #18222d2e;border-radius:0;font-size:14px; }

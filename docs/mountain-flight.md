@@ -1,6 +1,6 @@
 # The Long Way Home — mountain flight experiment
 
-Branch: `claude/mountain-flight-paper`. It is the paper version of the flight: centred text, a muted paper print and line drawings. The earlier navy and amber version with particle figures is kept on `claude/mountain-flight-rework`; both are based on `claude/mountain-flight-base` (`codex/mountain-flight-experiment` plus the last Codex session). The completed galaxy portfolio is preserved at commit `b53ef22` on `feature/ui-improvements`, and remains accessible in this branch at `/?view=galaxy`. The experimental flight is the default `/` view.
+Branch: `claude/mountain-flight-paper`. It is the paper version of the flight: centred text on plain paper, a muted paper print of the valley as a landscape strip along the bottom, and line drawings. The earlier navy and amber version with particle figures is kept on `claude/mountain-flight-rework`; both are based on `claude/mountain-flight-base` (`codex/mountain-flight-experiment` plus the last Codex session). The completed galaxy portfolio is preserved at commit `b53ef22` on `feature/ui-improvements`, and remains accessible in this branch at `/?view=galaxy`. The experimental flight is the default `/` view.
 
 The opening uses Niklas's latest supplied photograph, AI enhanced and extended into a wide frame. Only a small “HI!” in the upper-left sky and a scroll cue are visible. The greeting is one third of the previous size and uses the original portfolio’s sans-serif font stack with negative blending. The camera moves beside the hikers, toward the next mountain on the left, then banks across the photographed valley before returning to the opening.
 
@@ -14,7 +14,7 @@ The approach lasts 3.5 viewport heights. The color transition starts around the 
 
 ## Art direction after the fly-by
 
-Everything after the fly-by is paper: a calm, centred article in dark ink, with the print of the valley open in both margins.
+Everything after the fly-by is paper: a calm, centred article in dark ink on a plain sheet, with the print of the valley as a strip of landscape along the bottom of the window.
 
 - **Type.** Display type uses the same heavy sans as the opening greeting (`--font-sans` at weight 900, tight tracking), so "Hi! I'm Nik.", the section titles and "Let's connect." read as the same voice as "HI!". The writing itself stays in a book serif (Georgia) at 19px in one centred column of at most 660px. The heading block and the closing lines are centred; paragraphs are left-aligned for reading.
 - **Lines.** Everything decorative is a thin line that draws itself once: the photograph's five ridgelines (`src/flight/ridges.ts`) open the five sections, a small line drawing sits beside each title, and the route under the column is an elevation profile.
@@ -24,9 +24,11 @@ Everything after the fly-by is paper: a calm, centred article in dark ink, with 
 
 The flight phase holds at exactly 48% of its route through the article body and starts moving again during the final 0.75 viewport heights. The measured article height determines the hold duration, including after edits and resizing. The scene rests during the hold, so reading costs no WebGL work.
 
-A sheet of paper (`.article-veil`) sits under the column: opaque across the column, feathered at its edges, with a small generated grain tile. `journeyAt` returns `sheet` for it: the sheet is in place just before the first line scrolls in and stays until the last line has left. The article itself is not faded or moved; it simply scrolls in and out over the sheet. On phones the sheet covers the full width.
+Just before the first line scrolls in, a sheet of paper (`.article-veil`, full width, with a small generated grain tile) comes down from the top like a blind and stops 27% of the viewport height above the bottom edge (`--strip`, 23% on phones). At the same time the live print sinks, so that its skyline and sunrise band sit just under the paper's edge. What stays visible below the paper is a landscape strip: the real ridges of the photograph, full width, with no fade and nothing beside the text. `journeyAt` returns `sheet` (0 up, 1 down) for this; `FlightApp.tsx` turns it into three transforms and one clip on the WebGL canvas. The strip is raised above the article, so the text scrolls away behind the mountains.
 
-Editable paragraphs, project links and track IDs live in `src/flight/article-content.ts`. Introductory and closing copy is in `src/flight/FlightApp.tsx`. The wording is the author's own and is treated as frozen; only its typesetting changes. The article moves through Go-findus, Mondono, BMW, Music and "What else i find cool". Both SoundCloud players sit inside the Music passage, each in a light frame with its track link underneath. The iframe markup and URLs are unchanged and nothing covers, hides or animates them.
+An earlier version put the paper only under the column and let the print fade out to the left and right of it. That side gradient was rejected (2026-10-02); four alternatives were prototyped on `claude/mountain-flight-paper-options` (watermark, windows between sheets, paper-cut ridges, landscape strip) and the landscape strip was chosen.
+
+Editable paragraphs, project links and track IDs live in `src/flight/article-content.ts`. Introductory and closing copy is in `src/flight/FlightApp.tsx`. The wording is the author's own and is treated as frozen; only its typesetting changes. The article moves through Go-findus, Mondono, BMW, Music and "What else i find cool". Both SoundCloud players sit inside the Music passage, each in a light frame with its track link underneath. The iframe markup and URLs are unchanged and nothing covers, hides or animates them while they are in the reading area.
 
 ### Line drawings
 
@@ -44,17 +46,17 @@ A drawing is an inline SVG split into strokes. When its section is first scrolle
 
 ### Route
 
-Fixed under the column, `.flight-trail` shows the article as an elevation profile with a summit at every section (`trailHeight` and `trailPath` in `src/flight/ridges.ts`). The walked part turns ochre, a marker follows the scroll position, and the numbers 01 to 05 are buttons that scroll to their section. Phones show the profile without the numbers.
+`.flight-trail` shows the article as an elevation profile with a summit at every section (`trailHeight` and `trailPath` in `src/flight/ridges.ts`). It sits on its own band of paper directly above the landscape strip, so it reads as a second, drawn skyline over the real one; the text scrolls away underneath the band. The walked part turns ochre, a marker follows the scroll position, and the numbers 01 to 05 are buttons that scroll to their section. Phones show the profile without the numbers.
 
 ## Contact stage and return
 
-The return flight begins gently under the last lines and continues after the article passes. Its first 62% is the contact stage: a soft patch of paper in the middle of the print, "Let's connect." in the display type, and LinkedIn, email and SoundCloud as line drawings that draw themselves in when the stage arrives. Each one is a link with a small label; email opens a message to `niklas@go-findus.tech`. The links are inert while hidden or fading in. Phones show the same title with the three links as rows.
+The return flight begins gently under the last lines and continues after the article passes. Its first 62% is the contact stage, on the same sheet of paper above the strip: "Let's connect." in the display type, and LinkedIn, email and SoundCloud as line drawings that draw themselves in when the stage arrives. Each one is a link with a small label; email opens a message to `niklas@go-findus.tech`. The links are inert while hidden or fading in. Phones show the same title with the three links as rows. Underneath, the strip shows the return flight moving through the valley.
 
-After the contact stage the print fades back into color and the opening photo reconstructs. Native scrolling rebases at matching loop frames.
+As the contact stage leaves, the paper lifts again and the landscape rises back to the full view. The print then fades back into color and the opening photo reconstructs. Native scrolling rebases at matching loop frames.
 
 ## Reduced motion and fallback
 
-`prefers-reduced-motion` and unavailable WebGL show a static, normally scrolling article on its paper sheet over the photograph, with the same typography, ridge marks and drawings (already drawn). The route and the contact stage are switched off there.
+`prefers-reduced-motion` and unavailable WebGL show a plain, normally scrolling page: the photograph as the opening picture, then the article on paper with the same typography, ridge marks and drawings (already drawn). The route, the landscape strip and the contact stage are switched off there.
 
 ## Assets and performance
 
@@ -109,6 +111,6 @@ Original implementation; no reference source code or assets copied.
 
 ## Verification
 
-`npm run test:flight` runs fourteen tests: exact loop endpoints, delayed color/print reconstruction, continuity across the wrap, finite camera samples, leftward movement and hiker clearance, original-image projection, a constant flight phase through variable article bodies, overlapping motion at both ends, progress preservation on resize, the contact stage window, the single music stage, the route profile (a summit on every stop, one ridgeline per section), the line drawings (one per section and contact link, made of separate strokes) and the paper sheet (in place before the first line, gone on both flight legs). TypeScript and production bundling pass. Lint reports only the existing fast-refresh warning in the shared button component. Three.js still triggers the existing bundle-size advisory.
+`npm run test:flight` runs fourteen tests: exact loop endpoints, delayed color/print reconstruction, continuity across the wrap, finite camera samples, leftward movement and hiker clearance, original-image projection, a constant flight phase through variable article bodies, overlapping motion at both ends, progress preservation on resize, the contact stage window, the single music stage, the route profile (a summit on every stop, one ridgeline per section), the line drawings (one per section and contact link, made of separate strokes) and the paper sheet (down before the first line, carries the contact stage, gone on both flight legs). TypeScript and production bundling pass. Lint reports only the existing fast-refresh warning in the shared button component. Three.js still triggers the existing bundle-size advisory.
 
-Browser checks for the paper version (2026-10-02) covered 1920 and 1440 wide desktop views, an 820 wide tablet and a 390 wide phone: the unchanged opening frame and fly-by path, the print, the centred article with every drawing, the route and its jump buttons, both SoundCloud players loading and playing when clicked, the contact stage with hover response, and the static article with reduced motion.
+Browser checks for the paper version (2026-10-02) covered 1920 and 1440 wide desktop views, an 820 wide tablet and a 390 wide phone: the unchanged opening frame and fly-by path, the print, the paper coming down and lifting again, the landscape strip, the centred article with every drawing, the route and its jump buttons, both SoundCloud players loading and playing when clicked, the contact stage with hover response, and the static article with reduced motion.

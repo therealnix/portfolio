@@ -37,8 +37,10 @@ The flight experiment lives on `codex/mountain-flight-experiment`.
 and this file, committed 2026-10-02. Two versions of everything after the
 fly-by were built on that base on 2026-10-02: `claude/mountain-flight-rework`
 (navy and amber print, particle figures, text on the left) and, on top of it,
-`claude/mountain-flight-paper` (muted paper print, centred text, line drawings,
-much lighter to run). Branch new flight work from whichever one is accepted. The
+`claude/mountain-flight-paper` (muted paper print as a landscape strip along the
+bottom, centred text on plain paper, line drawings, much lighter to run).
+`claude/mountain-flight-paper-options` only holds the four prototypes the strip
+was chosen from. Branch new flight work from whichever one is accepted. The
 finished
 galaxy version is preserved at commit `b53ef22` on `feature/ui-improvements`.
 Keep experiments on their own branch.
@@ -111,3 +113,8 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
 - The remaining slow frames come from the two SoundCloud widgets loading. A
   click-to-load placeholder would remove them but changes the embeds, which the
   user has ruled out so far; ask before doing that.
+- The first paper layout (paper under the column, print fading out on both
+  sides) was rejected: the user does not want the mountains "just on the sides"
+  behind a gradient. Out of four prototypes they chose the landscape strip:
+  plain paper for the text, the live print as a full-width strip along the
+  bottom, text scrolling away behind it. Do not bring back side gradients.
