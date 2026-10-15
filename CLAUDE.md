@@ -46,7 +46,9 @@ text. `claude/mountain-flight-horizon` (2026-10-15, on top of the haze branch)
 replaces the blur with a low horizon: mountains on the bottom sixth, text rising
 from behind them. `claude/mountain-flight-loop` (on top of it) reverts the hiker
 cutout and reworks the end of the loop: the contact stage shows while the camera
-rests, then fades as the camera slowly sets off again. Branch new flight work from whichever one is accepted. The
+rests, then fades as the camera slowly sets off again.
+`claude/mountain-flight-return` (on top of it) makes the return flight retrace
+the fly-by backwards instead of the old curvy route through the valley. Branch new flight work from whichever one is accepted. The
 finished
 galaxy version is preserved at commit `b53ef22` on `feature/ui-improvements`.
 Keep experiments on their own branch.

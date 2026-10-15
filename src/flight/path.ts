@@ -33,6 +33,8 @@ interface Keyframe {
     roll: number;
 }
 const home: Vec3 = [0, 0, 0], homeTarget: Vec3 = [0, 0, -200];
+// The fly-by out to the reading view at .48. The key at .58 is never reached: it only shapes how the
+// camera arrives at the reading view, exactly as the original flight did.
 const keys: Keyframe[] = [
     { t: 0, position: home, target: homeTarget, roll: 0 },
     { t: .045, position: home, target: homeTarget, roll: 0 },
@@ -41,12 +43,10 @@ const keys: Keyframe[] = [
     { t: .38, position: [-16, -3, -17], target: [-38, -13, -200], roll: -.02 },
     { t: .48, position: [-23, -4, -26], target: [-40, -19, -200], roll: .012 },
     { t: .58, position: [-27, -5, -32], target: [-26, -25, -200], roll: .032 },
-    { t: .68, position: [-28, -6, -38], target: [-7, -22, -200], roll: .02 },
-    { t: .78, position: [-24, -5, -34], target: [4, -6, -200], roll: 0 },
-    { t: .87, position: [-14, -2, -17], target: [-8, 2, -200], roll: -.018 },
-    { t: .965, position: home, target: homeTarget, roll: 0 },
-    { t: 1, position: home, target: homeTarget, roll: 0 },
 ];
+// The return retraces the fly-by backwards: from the reading view the most direct way back to the opening
+// frame, without new detours, arriving at HOME_AT where the photograph crossfades in.
+const RETURN_FROM = .48, HOME_AT = .965, LEAVE_HOME = keys[1].t;
 function hermite(a: number, b: number, before: number, after: number, u: number, span: number, leftSpan: number, rightSpan: number, first: boolean, last: boolean) {
     if (first && last && a === b)
         return a;
@@ -62,10 +62,18 @@ export function photoOpacity(phase: number) {
 }
 export function getFlightFrame(value: number) {
     const phase = wrap(value);
+    if (phase > RETURN_FROM) {
+        // Leaving the rest is eased by the scroll, and the fly-by itself slows into the opening frame.
+        const u = Math.min(1, (phase - RETURN_FROM) / (HOME_AT - RETURN_FROM));
+        return { ...flyBy(RETURN_FROM - (RETURN_FROM - LEAVE_HOME) * u), phase, photo: photoOpacity(phase) };
+    }
+    return { ...flyBy(phase), phase, photo: photoOpacity(phase) };
+}
+function flyBy(phase: number) {
     const index = Math.max(0, keys.findIndex((key, i) => i < keys.length - 1 && phase >= key.t && phase <= keys[i + 1].t));
     const a = keys[index], b = keys[index + 1], before = keys[Math.max(0, index - 1)], after = keys[Math.min(keys.length - 1, index + 2)];
     const span = b.t - a.t, u = clamp((phase - a.t) / span);
     const sample = (av: number, bv: number, pv: number, nv: number) => hermite(av, bv, pv, nv, u, span, b.t - before.t, after.t - a.t, restsAt[index], restsAt[index + 1]);
     const vector = (field: 'position' | 'target') => a[field].map((v, i) => sample(v, b[field][i], before[field][i], after[field][i])) as Vec3;
-    return { phase, position: vector('position'), target: vector('target'), roll: sample(a.roll, b.roll, before.roll, after.roll), fov: 51, photo: photoOpacity(phase) };
+    return { position: vector('position'), target: vector('target'), roll: sample(a.roll, b.roll, before.roll, after.roll), fov: 51 };
 }

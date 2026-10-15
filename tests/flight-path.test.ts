@@ -196,3 +196,23 @@ test('the camera is perfectly still while the photograph crossfades into the sce
         }
     }
 });
+test('the return flight retraces the fly-by straight back to the opening frame', () => {
+    const home = getFlightFrame(0);
+    let previous = Infinity;
+    for (let i = 0; i <= 1000; i++) {
+        const u = i / 1000, back = getFlightFrame(READING_CAMERA + (.965 - READING_CAMERA) * u);
+        // Exactly the view the fly-by passed through on the way out, so no new detours or close-ups.
+        const out = getFlightFrame(READING_CAMERA - (READING_CAMERA - .045) * u);
+        for (const field of ['position', 'target'] as const)
+            back[field].forEach((v, k) => assert.ok(Math.abs(v - out[field][k]) < 1e-9));
+        // Always getting closer to the opening view, never turning back.
+        const distance = Math.hypot(...back.position.map((v, k) => v - home.position[k]));
+        assert.ok(distance <= previous + 1e-9);
+        previous = distance;
+    }
+    // Continuous where it leaves the reading view, and slowing into the opening frame.
+    const from = getFlightFrame(READING_CAMERA), leave = getFlightFrame(READING_CAMERA + 1e-7);
+    assert.ok(Math.hypot(...leave.position.map((v, k) => v - from.position[k])) < 1e-3);
+    const step = (a: number, b: number) => Math.hypot(...getFlightFrame(a).position.map((v, k) => v - getFlightFrame(b).position[k]));
+    assert.ok(step(.955, .965) < step(.70, .71) / 4);
+});
