@@ -44,7 +44,9 @@ was chosen from. `claude/mountain-flight-haze` (2026-10-15, on top of the paper
 branch) drops the strip: the print stays full screen and softens behind the
 text. `claude/mountain-flight-horizon` (2026-10-15, on top of the haze branch)
 replaces the blur with a low horizon: mountains on the bottom sixth, text rising
-from behind them. Branch new flight work from whichever one is accepted. The
+from behind them. `claude/mountain-flight-loop` (on top of it) reverts the hiker
+cutout and reworks the end of the loop: the contact stage shows while the camera
+rests, then fades as the camera slowly sets off again. Branch new flight work from whichever one is accepted. The
 finished
 galaxy version is preserved at commit `b53ef22` on `feature/ui-improvements`.
 Keep experiments on their own branch.
@@ -139,10 +141,14 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
   of the screen, the sky clears toward the paper for contrast, and the text
   passes behind the mountains along a hard edge with a short fade above it
   (the user explicitly wants the edge hard, not rounded or soft).
-- The hikers are a real cutout (`public/flight/hikers.webp`, built by
-  `scripts/prepare-hiker-matte.py` from photo minus clean plate). Regenerate it
-  and `HIKER_CROP` together. The camera must stay exactly still while the
-  photograph crossfades in and out (test in `tests/flight-path.test.ts`).
+- A hiker cutout computed from photo minus clean plate looked worse to the
+  user and was reverted; the hikers use the hand-measured mask again. The
+  camera must stay exactly still while the photograph crossfades in and out
+  (test in `tests/flight-path.test.ts`).
 - Copy changes the user asked for: the contact stage links Substack
   (`https://substack.com/@s0medude`) instead of SoundCloud, and the Music
   paragraph ends "Check it out :)" without the inline SoundCloud link.
+- Loop ending (2026-10-15, user request): "Let's connect." appears only once
+  the camera has stopped; scrolling on fades it out while the camera slowly
+  starts moving and completes the loop. `journeyMetrics` has a `contact`
+  segment for this.

@@ -93,7 +93,12 @@ export default function FlightApp() {
                 trailWalked.current!.style.clipPath = `inset(-12px ${((1 - +value) * 100).toFixed(2)}% -4px 0)`;
                 trailMarker.current!.style.transform = `translate(${(+value * trailWidth).toFixed(1)}px,${(-trailHeight(route.current, +value) * trailHeightPx).toFixed(1)}px)`;
             });
-            put('contact', away, (value: string) => { contact.current!.style.opacity = value; contact.current!.style.visibility = +value > .01 ? 'visible' : 'hidden'; });
+            // It drifts in from slightly below and leaves upwards, with the direction of the scroll.
+            put('contact', `${away}:${state.leaving}`, () => {
+                contact.current!.style.opacity = away;
+                contact.current!.style.visibility = +away > .01 ? 'visible' : 'hidden';
+                contact.current!.style.transform = `translateY(${((1 - +away) * (state.leaving ? -22 : 22)).toFixed(1)}px)`;
+            });
             put('linked', state.contact >= .8, (value: boolean) => { contactLinks.current!.inert = !value; });
             // The contact drawings are drawn when the stage arrives and reset once it has left.
             if (state.contact > .3)

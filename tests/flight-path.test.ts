@@ -14,24 +14,36 @@ test('music is one particle stage with the two tracks at its boundaries', () => 
     assert.ok(!ARTICLE_SECTIONS.some(section => section.shape === 'headphones'));
 });
 
-test('the contact stage remains visible during the return and clears before the home frame', () => {
-    const m = journeyMetrics(900, 4500), start = m.approach + m.reading;
-    assert.equal(journeyAt(start, m).contact, 0);
-    for (const fraction of [.12, .28, .5]) {
-        const state = journeyAt(start + m.departure * fraction, m);
+test('the contact stage appears while the camera rests and fades as the return flight sets off', () => {
+    const m = journeyMetrics(900, 4500), contactStart = m.approach + m.reading, contactEnd = contactStart + m.contact;
+    assert.equal(journeyAt(contactStart - m.viewport * .5, m).contact, 0);
+    // Fully shown, with the camera exactly where the article left it.
+    for (let offset = contactStart + m.viewport * .4; offset <= contactEnd; offset += 17) {
+        const state = journeyAt(offset, m);
         assert.equal(state.contact, 1);
+        assert.equal(state.phase, READING_CAMERA);
         assert.equal(state.reading, false);
-        assert.ok(state.phase > READING_CAMERA);
     }
-    assert.equal(journeyAt(start + m.departure * .9, m).contact, 0);
+    // Scrolling on: the stage fades while the camera starts to move, slowly at first.
+    const setOff = journeyAt(contactEnd + m.viewport * .4, m);
+    assert.ok(setOff.contact > 0 && setOff.contact < 1 && setOff.leaving);
+    assert.ok(setOff.phase > READING_CAMERA);
+    // Starting slowly: the first stretch moves the camera far less than the same stretch mid-flight.
+    const middle = contactEnd + m.departure / 2;
+    assert.ok(setOff.phase - READING_CAMERA < (journeyAt(middle + m.viewport * .4, m).phase - journeyAt(middle, m).phase) / 4);
+    assert.equal(journeyAt(contactEnd + m.viewport * .8, m).contact, 0);
+    for (let offset = contactEnd + m.viewport * .8; offset < m.length; offset += 31)
+        assert.equal(journeyAt(offset, m).contact, 0);
+    // The camera never jumps: the departure eases out of the rest.
+    for (let offset = contactEnd - 50; offset < contactEnd + m.viewport; offset += 5)
+        assert.ok(journeyAt(offset + 5, m).phase - journeyAt(offset, m).phase < .002);
 });
 
 test('the camera holds still through the article body with short motion overlaps at either end', () => {
     for (const articleHeight of [1500, 4500, 9000]) {
         const m = journeyMetrics(900, articleHeight);
-        for (let offset = m.viewport * .9; offset < m.reading - m.viewport * .75; offset += 17) {
+        for (let offset = m.viewport * .9; offset <= m.reading + m.contact; offset += 17) {
             const state = journeyAt(m.approach + offset, m);
-            assert.equal(state.reading, true);
             assert.equal(state.phase, READING_CAMERA);
         }
         assert.equal(m.reading, articleHeight + 900);
@@ -40,8 +52,8 @@ test('the camera holds still through the article body with short motion overlaps
         assert.ok(entering.horizon > .9 && entering.phase < READING_CAMERA);
         const leaving = journeyAt(m.approach + m.reading - 300, m);
         assert.equal(leaving.reading, true);
-        assert.ok(leaving.horizon === 1 && leaving.phase > READING_CAMERA);
-        assert.ok(journeyAt(m.approach + m.reading + 50, m).phase > READING_CAMERA);
+        assert.ok(leaving.horizon === 1 && leaving.phase === READING_CAMERA);
+        assert.ok(journeyAt(m.approach + m.reading + m.contact + 50, m).phase > READING_CAMERA);
     }
 });
 
@@ -52,7 +64,7 @@ test('the earlier sketch transition joins the reading hold continuously', () => 
     assert.ok(getPresentation(journeyAt(m.approach * .6, m).phase).sketch > 0);
     assert.ok(Math.abs(journeyAt(m.approach + m.viewport * .9 - .01, m).phase - READING_CAMERA) < 1e-8);
     assert.equal(getPresentation(READING_CAMERA).sketch, 1);
-    assert.ok(Math.abs(journeyAt(m.approach + m.reading - m.viewport * .75 + .01, m).phase - READING_CAMERA) < 1e-8);
+    assert.ok(Math.abs(journeyAt(m.approach + m.reading + m.contact + .01, m).phase - READING_CAMERA) < 1e-8);
     assert.ok(journeyAt(m.length - .01, m).phase > .99999);
     assert.equal(journeyAt(m.length, m).phase, 0);
 });
@@ -64,8 +76,10 @@ test('resizing preserves progress within the article and on both flight legs', (
         assert.equal(reading.phase, READING_CAMERA);
         assert.ok(Math.abs(reading.readOffset / after.reading - fraction) < 1e-10);
         assert.ok(Math.abs(remapJourneyOffset(before.approach * fraction, before, after) / after.approach - fraction) < 1e-10);
-        const exit = remapJourneyOffset(before.approach + before.reading + before.departure * fraction, before, after);
-        assert.ok(Math.abs((exit - after.approach - after.reading) / after.departure - fraction) < 1e-10);
+        const stage = remapJourneyOffset(before.approach + before.reading + before.contact * fraction, before, after);
+        assert.ok(Math.abs((stage - after.approach - after.reading) / after.contact - fraction) < 1e-10);
+        const exit = remapJourneyOffset(before.approach + before.reading + before.contact + before.departure * fraction, before, after);
+        assert.ok(Math.abs((exit - after.approach - after.reading - after.contact) / after.departure - fraction) < 1e-10);
     }
 });
 test('the clean opening reconstructs exactly and the project view is fully sketch', () => {
@@ -151,17 +165,18 @@ test('every section and every contact link has a line drawing made of separate s
     assert.deepEqual(Object.keys(CONTACT_SKETCHES), ['linkedin', 'email', 'substack']);
 });
 test('the horizon lowers before the first line, stays low through the contact stage and rises on both flight legs', () => {
-    const m = journeyMetrics(900, 4500), contactStart = m.approach + m.reading, contactEnd = contactStart + m.departure * .62;
+    const m = journeyMetrics(900, 4500), contactEnd = m.approach + m.reading + m.contact;
     assert.equal(journeyAt(0, m).horizon, 0);
     assert.equal(journeyAt(m.approach * .5, m).horizon, 0);
     assert.ok(journeyAt(m.approach, m).horizon > .6);
     // Down before the first lines clear the mountains at the bottom sixth of the screen.
     assert.ok(journeyAt(m.approach + m.viewport / 6, m).horizon > .97);
-    for (let offset = m.approach + m.viewport * .3; offset <= contactStart + m.departure * .45; offset += 31)
+    for (let offset = m.approach + m.viewport * .3; offset <= contactEnd + m.viewport * .1; offset += 31)
         assert.equal(journeyAt(offset, m).horizon, 1);
-    const rising = journeyAt(contactEnd - m.departure * .04, m);
-    assert.ok(rising.horizon > 0 && rising.horizon < 1 && rising.contact > 0 && rising.contact < 1);
-    for (let offset = contactEnd; offset < m.length; offset += 31) {
+    // It rises after the camera has set off and is up long before the photograph returns.
+    const rising = journeyAt(contactEnd + m.viewport * .7, m);
+    assert.ok(rising.horizon > 0 && rising.horizon < 1 && rising.phase > READING_CAMERA);
+    for (let offset = contactEnd + m.viewport * 1.4; offset < m.length; offset += 31) {
         const state = journeyAt(offset, m);
         assert.equal(state.horizon, 0);
         assert.equal(state.contact, 0);
