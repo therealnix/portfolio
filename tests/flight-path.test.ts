@@ -37,10 +37,10 @@ test('the camera holds still through the article body with short motion overlaps
         assert.equal(m.reading, articleHeight + 900);
         const entering = journeyAt(m.approach + 300, m);
         assert.equal(entering.reading, true);
-        assert.ok(entering.sheet > .9 && entering.phase < READING_CAMERA);
+        assert.ok(entering.haze > .9 && entering.phase < READING_CAMERA);
         const leaving = journeyAt(m.approach + m.reading - 300, m);
         assert.equal(leaving.reading, true);
-        assert.ok(leaving.sheet === 1 && leaving.phase > READING_CAMERA);
+        assert.ok(leaving.haze === 1 && leaving.phase > READING_CAMERA);
         assert.ok(journeyAt(m.approach + m.reading + 50, m).phase > READING_CAMERA);
     }
 });
@@ -150,19 +150,22 @@ test('every section and every contact link has a line drawing made of separate s
     assert.equal(strokes(SKETCHES.music).length, 6);
     assert.deepEqual(Object.keys(CONTACT_SKETCHES), ['linkedin', 'email', 'soundcloud']);
 });
-test('the paper sheet comes down before the first line, carries the contact stage and is gone on both flight legs', () => {
+test('the reading haze builds before the first line, holds through the contact stage and clears on both flight legs', () => {
     const m = journeyMetrics(900, 4500), contactStart = m.approach + m.reading, contactEnd = contactStart + m.departure * .62;
-    assert.equal(journeyAt(0, m).sheet, 0);
-    assert.equal(journeyAt(m.approach * .5, m).sheet, 0);
-    assert.ok(journeyAt(m.approach, m).sheet > .85);
+    assert.equal(journeyAt(0, m).haze, 0);
+    assert.equal(journeyAt(m.approach * .5, m).haze, 0);
+    assert.ok(journeyAt(m.approach, m).haze > .8);
     for (let offset = m.approach + m.viewport * .2; offset <= contactStart + m.departure * .45; offset += 31)
-        assert.equal(journeyAt(offset, m).sheet, 1);
-    // It lifts together with the contact stage, and both are gone before the photograph returns.
-    const lifting = journeyAt(contactEnd - m.departure * .04, m);
-    assert.ok(lifting.sheet > 0 && lifting.sheet < 1 && lifting.contact > 0 && lifting.contact < 1);
+        assert.equal(journeyAt(offset, m).haze, 1);
+    // It clears together with the contact stage, and both are gone before the photograph returns.
+    const clearing = journeyAt(contactEnd - m.departure * .04, m);
+    assert.ok(clearing.haze > 0 && clearing.haze < 1 && clearing.contact > 0 && clearing.contact < 1);
     for (let offset = contactEnd; offset < m.length; offset += 31) {
         const state = journeyAt(offset, m);
-        assert.equal(state.sheet, 0);
+        assert.equal(state.haze, 0);
         assert.equal(state.contact, 0);
     }
+    // No jumps anywhere along the loop.
+    for (let offset = 0; offset < m.length; offset += 5)
+        assert.ok(Math.abs(journeyAt(offset + 5, m).haze - journeyAt(offset, m).haze) < .02);
 });

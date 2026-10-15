@@ -8,9 +8,6 @@ import { CONTACT_SKETCHES, SKETCHES, strokes } from './sketches';
 import originalPhoto from '../assets/niklas-mountains.jpeg';
 import './flight.css';
 const stopNumber = (index: number) => String(index + 1).padStart(2, '0');
-// How far above the top edge of the landscape strip the skyline of the print should sit, and where
-// that skyline is in the full view, both as a share of the viewport height.
-const SKYLINE = .33, SKY_MARGIN = .06;
 // Every section opens with one of the photograph's own ridgelines, drawn in as it arrives.
 const SectionMark = ({ index, number }: { index: number; number?: string }) => <div className="section-mark reveal" aria-hidden="true">
     {number && <span>{number}</span>}
@@ -40,8 +37,8 @@ export default function FlightApp() {
     const root = useRef<HTMLElement>(null), host = useRef<HTMLDivElement>(null), greeting = useRef<HTMLCanvasElement>(null);
     const photograph = useRef<HTMLDivElement>(null), vignette = useRef<HTMLDivElement>(null), veil = useRef<HTMLDivElement>(null), intro = useRef<HTMLDivElement>(null), spacer = useRef<HTMLDivElement>(null);
     const article = useRef<HTMLElement>(null), contact = useRef<HTMLDivElement>(null), contactLinks = useRef<HTMLElement>(null), sections = useRef<HTMLElement[]>([]);
-    const trailNav = useRef<HTMLElement>(null), trailProfile = useRef<HTMLDivElement>(null), trailWalked = useRef<HTMLDivElement>(null), trailMarker = useRef<HTMLSpanElement>(null);
-    const input = useRef({ phase: 0, reduced: false });
+    const trailNav = useRef<HTMLElement>(null), trailProfile = useRef<HTMLDivElement>(null), trailWalked = useRef<HTMLDivElement>(null), trailMarker = useRef<HTMLSpanElement>(null), progressBar = useRef<HTMLDivElement>(null);
+    const input = useRef({ phase: 0, haze: 0, reduced: false });
     const engine = useRef<{ wake: () => void }>(null);
     const metrics = useRef<JourneyMetrics>(journeyMetrics(window.innerHeight, 4000));
     const route = useRef<number[]>([]), offsets = useRef<number[]>([]);
@@ -63,7 +60,7 @@ export default function FlightApp() {
         document.documentElement.classList.remove('dark');
         const previous = history.scrollRestoration;
         history.scrollRestoration = 'manual';
-        let initialized = false, current = -1, trailWidth = 0, trailHeightPx = 0, strip = .27;
+        let initialized = false, current = -1, trailWidth = 0, trailHeightPx = 0;
         // Scrolling only writes a style when its value actually changed, and never reads layout.
         const shown: Record<string, string | boolean> = {};
         const put = (key: string, value: string | boolean, apply: (value: never) => void) => { if (shown[key] !== value) {
@@ -86,19 +83,13 @@ export default function FlightApp() {
             const state = journeyAt(y, m), away = state.contact.toFixed(3);
             put('top', `${Math.floor(y / m.length) * m.length + m.approach + m.viewport}px`, (value: string) => { article.current!.style.top = value; });
             put('reading', state.reading, (value: boolean) => { article.current!.inert = !value; });
-            // The paper comes down like a blind while the landscape sinks into a strip along the bottom.
-            // The strip is raised above the article, so the text slides behind the mountains.
-            put('sheet', state.sheet.toFixed(3), (value: string) => {
-                const down = +value, sink = 1 - strip + SKY_MARGIN - SKYLINE;
-                veil.current!.style.visibility = down ? 'visible' : 'hidden';
-                veil.current!.style.transform = `translateY(${((down - 1) * 100).toFixed(2)}%)`;
-                contact.current!.style.transform = `translateY(${((down - 1) * (1 - strip) * m.viewport).toFixed(1)}px)`;
-                host.current!.style.transform = down ? `translateY(${(down * sink * m.viewport).toFixed(1)}px)` : '';
-                host.current!.style.clipPath = down ? `inset(${(down * (1 - strip - sink) * m.viewport).toFixed(1)}px 0 0 0)` : '';
-                host.current!.style.zIndex = down ? '6' : '';
+            put('trail', state.reveal.toFixed(3), (value: string) => {
+                trailNav.current!.style.opacity = progressBar.current!.style.opacity = value;
+                trailNav.current!.style.visibility = progressBar.current!.style.visibility = value === '0.000' ? 'hidden' : 'visible';
+                trailNav.current!.inert = +value < .8;
             });
-            put('trail', state.reveal.toFixed(3), (value: string) => { trailNav.current!.style.opacity = value; trailNav.current!.style.visibility = value === '0.000' ? 'hidden' : 'visible'; trailNav.current!.inert = +value < .8; });
             put('route', state.progress.toFixed(4), (value: string) => {
+                progressBar.current!.style.transform = `scaleX(${value})`;
                 trailWalked.current!.style.clipPath = `inset(-12px ${((1 - +value) * 100).toFixed(2)}% -4px 0)`;
                 trailMarker.current!.style.transform = `translate(${(+value * trailWidth).toFixed(1)}px,${(-trailHeight(route.current, +value) * trailHeightPx).toFixed(1)}px)`;
             });
@@ -116,13 +107,14 @@ export default function FlightApp() {
             if (stop !== current)
                 setActive(current = stop);
             input.current.phase = state.phase;
+            input.current.haze = state.haze;
             engine.current?.wake();
         };
         const resize = () => {
             if (!article.current)
                 return;
             if (staticMode) {
-                article.current!.style.cssText = host.current!.style.cssText = veil.current!.style.cssText = '';
+                article.current!.style.cssText = '';
                 article.current!.inert = false;
                 return;
             }
@@ -139,9 +131,7 @@ export default function FlightApp() {
             }
             trailWidth = trailProfile.current!.offsetWidth;
             trailHeightPx = trailProfile.current!.offsetHeight;
-            strip = parseFloat(getComputedStyle(root.current!).getPropertyValue('--strip')) / 100 || .27;
             delete shown.route;
-            delete shown.sheet;
             initialized = true;
             window.scrollTo({ top: next.length + offset, behavior: 'instant' });
             update();
@@ -228,7 +218,6 @@ export default function FlightApp() {
       <footer className="article-ending"><SectionMark index={0}/><p>With that said <a href="mailto:niklas@go-findus.tech">Hit me up</a> if you've want to build, do or yap about something sick.</p><p>I wish you a wonderful day :)</p></footer>
     </article>
     <nav ref={trailNav} className="flight-trail" aria-label="Sections" inert>
-      <div className="trail-paper" aria-hidden="true"/>
       <div ref={trailProfile} className="trail-profile" aria-hidden="true">
         <svg className="trail-ground" viewBox="0 0 1000 100" preserveAspectRatio="none"><path d={profile}/></svg>
         <div ref={trailWalked} className="trail-walked"><svg viewBox="0 0 1000 100" preserveAspectRatio="none"><path d={profile}/></svg></div>
@@ -236,5 +225,6 @@ export default function FlightApp() {
       </div>
       {ARTICLE_SECTIONS.map((section, index) => <button key={section.id} type="button" className={index === active ? 'is-current' : index < active ? 'is-passed' : undefined} style={{ left: `${stops[index] * 100}%` }} aria-label={section.title} aria-current={index === active ? 'step' : undefined} onClick={() => visitStop(index)}>{stopNumber(index)}</button>)}
     </nav>
+    <div ref={progressBar} className="flight-progress" aria-hidden="true"/>
   </main>;
 }

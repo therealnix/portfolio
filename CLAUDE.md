@@ -40,7 +40,9 @@ fly-by were built on that base on 2026-10-02: `claude/mountain-flight-rework`
 `claude/mountain-flight-paper` (muted paper print as a landscape strip along the
 bottom, centred text on plain paper, line drawings, much lighter to run).
 `claude/mountain-flight-paper-options` only holds the four prototypes the strip
-was chosen from. Branch new flight work from whichever one is accepted. The
+was chosen from. `claude/mountain-flight-haze` (2026-10-15, on top of the paper
+branch) drops the strip: the print stays full screen and softens behind the
+text. Branch new flight work from whichever one is accepted. The
 finished
 galaxy version is preserved at commit `b53ef22` on `feature/ui-improvements`.
 Keep experiments on their own branch.
@@ -118,3 +120,13 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
   behind a gradient. Out of four prototypes they chose the landscape strip:
   plain paper for the text, the live print as a full-width strip along the
   bottom, text scrolling away behind it. Do not bring back side gradients.
+
+## Haze version of 2026-10-15
+
+- The user did not like the background scrolling down into the landscape strip.
+  They want to stay with the print the fly-by ends on and have the text appear
+  on top of it, readable through blur and contrast, matching the scheme, with
+  no hard cuts and smooth transitions everywhere.
+- Done in the print shader only: a reading `haze` (from `journeyAt`, eased by
+  the engine) blurs the frame and lifts its dark tones toward the paper. No
+  overlays, panels, blinds or gradients over the scene.

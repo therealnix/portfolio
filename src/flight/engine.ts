@@ -10,6 +10,7 @@ interface FlightOptions {
     intro: HTMLDivElement;
     input: {
         phase: number;
+        haze: number;
         reduced: boolean;
     };
     onReady: () => void;
@@ -29,7 +30,7 @@ export function createMountainFlight(options: FlightOptions) {
     const camera = new THREE.PerspectiveCamera(51, 1, .1, 2400);
     camera.zoom = 1.08;
     const font = getComputedStyle(document.body).fontFamily;
-    let disposed = false, loaded = false, running = false, width = 1, height = 1, frameId = 0, last = 0, phase = 0, lastKey = '';
+    let disposed = false, loaded = false, running = false, width = 1, height = 1, frameId = 0, last = 0, phase = 0, haze = 0, lastKey = '';
     // Resolution steps down if this machine cannot keep up with the flight.
     let quality = 1, slow = 0, greeted = false;
     const people = HIKER_OUTLINE.map(([u, v]) => photoPoint(u, v, 22));
@@ -38,7 +39,7 @@ export function createMountainFlight(options: FlightOptions) {
         const dpr = Math.min(window.devicePixelRatio || 1, width < 768 ? 1.25 : 1.5);
         renderer.setPixelRatio(dpr * quality);
         renderer.setSize(width, height, false);
-        sketchPass.resize(Math.round(width * dpr * quality), Math.round(height * dpr * quality));
+        sketchPass.resize(Math.round(width * dpr * quality), Math.round(height * dpr * quality), dpr * quality);
         return dpr;
     };
     const resize = () => {
@@ -75,7 +76,7 @@ export function createMountainFlight(options: FlightOptions) {
         camera.lookAt(look);
         camera.updateMatrixWorld();
         if (loaded && hero < .999 && !input.reduced) {
-            sketchPass.render(world.scene, camera, sketch);
+            sketchPass.render(world.scene, camera, sketch, haze);
             // Count frames that miss 60 per second; a run of them lowers the render resolution one step.
             slow = dt > .021 ? slow + 1 : Math.max(0, slow - 1);
             if (slow > 24 && quality > .6) {
@@ -116,12 +117,15 @@ export function createMountainFlight(options: FlightOptions) {
         last = now;
         const delta = circularDelta(phase, input.phase);
         phase = Math.abs(delta) < .00002 ? input.phase : wrap(phase + delta * (1 - Math.exp(-dt * 5)));
-        // Everything on screen follows the flight phase. Once it has settled, the loop stops until the next scroll.
-        const key = `${phase}:${width}:${height}:${loaded}:${input.reduced}`;
+        // The reading haze eases in and out at the same pace as the camera.
+        const goal = input.reduced ? 0 : input.haze;
+        haze = Math.abs(goal - haze) < .0005 ? goal : haze + (goal - haze) * (1 - Math.exp(-dt * 5));
+        // Everything on screen follows the flight phase and the haze. Once both have settled, the loop stops until the next scroll.
+        const key = `${phase}:${haze}:${width}:${height}:${loaded}:${input.reduced}`;
         if (key !== lastKey) {
             lastKey = key;
             draw(dt);
-        } else if (phase === input.phase) {
+        } else if (phase === input.phase && haze === goal) {
             running = false;
             return;
         }
@@ -137,7 +141,7 @@ export function createMountainFlight(options: FlightOptions) {
     void world.ready.then(() => { if (!disposed) {
         // Upload the textures and compile both passes now, behind the opening photograph,
         // so the first scroll does not pay for them.
-        sketchPass.render(world.scene, camera, .5);
+        sketchPass.render(world.scene, camera, .5, .5);
         loaded = true;
         lastKey = '';
         wake();
