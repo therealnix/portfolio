@@ -33,7 +33,7 @@ export const ARTICLE_SECTIONS: ArticleSection[] = [
             { id: '2093814105', href: 'https://soundcloud.com/jigglniggl/lamp-rawmix1', label: 'Onedanceee · S0N!K' },
         ],
         paragraphs: [
-            "Music has been a part of my life since I can think. The amount of different emotion that can be carried by Soundwaves is really crazy in my opinion. Because of that I startet picking up music production as a hobby in my teens and it's been bringing me a lot of joy since then. Fell free to check it out on SoundCloud :).",
+            "Music has been a part of my life since I can think. The amount of different emotion that can be carried by Soundwaves is really crazy in my opinion. Because of that I startet picking up music production as a hobby in my teens and it's been bringing me a lot of joy since then. Check it out :)",
         ],
     },
     {

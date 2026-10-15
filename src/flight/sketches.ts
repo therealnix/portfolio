@@ -22,7 +22,7 @@ export const SKETCHES: Record<string, string> = {
 export const CONTACT_SKETCHES = {
     linkedin: 'M42 32 H214 Q224 32 224 42 V214 Q224 224 214 224 H42 Q32 224 32 214 V42 Q32 32 42 32 Z M65 102 H91 V192 H65 Z M91 73 A13 13 0 1 1 65 73 A13 13 0 1 1 91 73 Z M110 192 V102 H136 V114 C146 93 193 95 193 132 V192 H167 V139 C167 117 136 117 136 140 V192 Z',
     email: 'M35 65 H221 V193 H35 Z M35 68 L128 143 L221 68 M35 190 L101 132 M221 190 L155 132',
-    soundcloud: 'M20 142 V167 M35 127 V180 M50 113 V184 M65 98 V184 M80 108 V184 M95 83 V184 M110 70 V184 M126 184 V66 C156 52 189 76 193 114 C244 101 260 184 215 184 Z',
+    substack: 'M58 34 H198 V62 H58 Z M58 86 H198 V114 H58 Z M58 138 H198 V224 L128 184 L58 224 Z',
 };
 /** A drawing as separate strokes, so each one can be drawn after the other. */
 export const strokes = (d: string) => d.split(/(?=M)/).map(stroke => stroke.trim()).filter(Boolean);

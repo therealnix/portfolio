@@ -24,12 +24,12 @@ export function journeyAt(offset: number, metrics: JourneyMetrics) {
     const contactDuration = metrics.departure * .62;
     const contactRaw = clamp((local - contactStart) / contactDuration);
     const contact = local > contactStart ? smoothstep(0, .12, contactRaw) * (1 - smoothstep(.82, 1, contactRaw)) : 0;
-    // The print softens and lightens behind the text: it starts just before the first line scrolls in,
-    // holds through the article and the contact stage, and clears again as the contact stage leaves.
-    const haze = smoothstep(-metrics.viewport * .7, metrics.viewport * .15, readOffset) * (1 - smoothstep(.78, 1, contactRaw));
+    // The horizon glides down to the bottom of the screen as the fly-by settles, so the first lines rise from
+    // behind the mountains. It stays low through the article and the contact stage and rises as that stage leaves.
+    const horizon = smoothstep(-metrics.viewport * .95, metrics.viewport * .25, readOffset) * (1 - smoothstep(.75, 1, contactRaw));
     // The route runs from the first line of the article to the last.
     const progress = clamp(readOffset / metrics.reading);
-    return { local, phase: Math.min(phase, 1 - 1e-9), reading, holding, readOffset, reveal, haze, contact, progress };
+    return { local, phase: Math.min(phase, 1 - 1e-9), reading, holding, readOffset, reveal, horizon, contact, progress };
 }
 export function remapJourneyOffset(offset: number, before: JourneyMetrics, after: JourneyMetrics) {
     const state = journeyAt(offset, before);

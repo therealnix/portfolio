@@ -48,9 +48,15 @@ const keys: Keyframe[] = [
     { t: 1, position: home, target: homeTarget, roll: 0 },
 ];
 function hermite(a: number, b: number, before: number, after: number, u: number, span: number, leftSpan: number, rightSpan: number, first: boolean, last: boolean) {
+    if (first && last && a === b)
+        return a;
     const m0 = first ? 0 : (b - before) / leftSpan * span, m1 = last ? 0 : (after - a) / rightSpan * span;
     return (2 * u * u * u - 3 * u * u + 1) * a + (u * u * u - 2 * u * u + u) * m0 + (-2 * u * u * u + 3 * u * u) * b + (u * u * u - u * u) * m1;
 }
+const sameKey = (a: Keyframe, b: Keyframe) => a.roll === b.roll && a.position.every((v, i) => v === b.position[i]) && a.target.every((v, i) => v === b.target[i]);
+// A key that begins or ends a hold has zero velocity, so the camera stays perfectly still for the whole
+// hold (the photograph crossfades into the scene there) and eases out of it instead of jumping into motion.
+const restsAt = keys.map((key, i) => i === 0 || i === keys.length - 1 || sameKey(key, keys[i - 1]) || sameKey(key, keys[i + 1]));
 export function photoOpacity(phase: number) {
     return 1 - smoothstep(.012, .043, phase) + smoothstep(.967, .99, phase);
 }
@@ -59,7 +65,7 @@ export function getFlightFrame(value: number) {
     const index = Math.max(0, keys.findIndex((key, i) => i < keys.length - 1 && phase >= key.t && phase <= keys[i + 1].t));
     const a = keys[index], b = keys[index + 1], before = keys[Math.max(0, index - 1)], after = keys[Math.min(keys.length - 1, index + 2)];
     const span = b.t - a.t, u = clamp((phase - a.t) / span);
-    const sample = (av: number, bv: number, pv: number, nv: number) => hermite(av, bv, pv, nv, u, span, b.t - before.t, after.t - a.t, index === 0, index === keys.length - 2);
+    const sample = (av: number, bv: number, pv: number, nv: number) => hermite(av, bv, pv, nv, u, span, b.t - before.t, after.t - a.t, restsAt[index], restsAt[index + 1]);
     const vector = (field: 'position' | 'target') => a[field].map((v, i) => sample(v, b[field][i], before[field][i], after[field][i])) as Vec3;
     return { phase, position: vector('position'), target: vector('target'), roll: sample(a.roll, b.roll, before.roll, after.roll), fov: 51, photo: photoOpacity(phase) };
 }

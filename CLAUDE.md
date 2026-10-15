@@ -42,7 +42,9 @@ bottom, centred text on plain paper, line drawings, much lighter to run).
 `claude/mountain-flight-paper-options` only holds the four prototypes the strip
 was chosen from. `claude/mountain-flight-haze` (2026-10-15, on top of the paper
 branch) drops the strip: the print stays full screen and softens behind the
-text. Branch new flight work from whichever one is accepted. The
+text. `claude/mountain-flight-horizon` (2026-10-15, on top of the haze branch)
+replaces the blur with a low horizon: mountains on the bottom sixth, text rising
+from behind them. Branch new flight work from whichever one is accepted. The
 finished
 galaxy version is preserved at commit `b53ef22` on `feature/ui-improvements`.
 Keep experiments on their own branch.
@@ -130,3 +132,17 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
 - Done in the print shader only: a reading `haze` (from `journeyAt`, eased by
   the engine) blurs the frame and lifts its dark tones toward the paper. No
   overlays, panels, blinds or gradients over the scene.
+
+## Horizon version of 2026-10-15
+
+- No blur. The horizon glides down until the mountains fill the bottom sixth
+  of the screen, the sky clears toward the paper for contrast, and the text
+  passes behind the mountains along a hard edge with a short fade above it
+  (the user explicitly wants the edge hard, not rounded or soft).
+- The hikers are a real cutout (`public/flight/hikers.webp`, built by
+  `scripts/prepare-hiker-matte.py` from photo minus clean plate). Regenerate it
+  and `HIKER_CROP` together. The camera must stay exactly still while the
+  photograph crossfades in and out (test in `tests/flight-path.test.ts`).
+- Copy changes the user asked for: the contact stage links Substack
+  (`https://substack.com/@s0medude`) instead of SoundCloud, and the Music
+  paragraph ends "Check it out :)" without the inline SoundCloud link.

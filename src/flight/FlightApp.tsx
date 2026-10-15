@@ -34,11 +34,11 @@ function paperGrain() {
     return `url(${tile.toDataURL()})`;
 }
 export default function FlightApp() {
-    const root = useRef<HTMLElement>(null), host = useRef<HTMLDivElement>(null), greeting = useRef<HTMLCanvasElement>(null);
+    const root = useRef<HTMLElement>(null), host = useRef<HTMLDivElement>(null), greeting = useRef<HTMLCanvasElement>(null), front = useRef<HTMLCanvasElement>(null);
     const photograph = useRef<HTMLDivElement>(null), vignette = useRef<HTMLDivElement>(null), veil = useRef<HTMLDivElement>(null), intro = useRef<HTMLDivElement>(null), spacer = useRef<HTMLDivElement>(null);
     const article = useRef<HTMLElement>(null), contact = useRef<HTMLDivElement>(null), contactLinks = useRef<HTMLElement>(null), sections = useRef<HTMLElement[]>([]);
     const trailNav = useRef<HTMLElement>(null), trailProfile = useRef<HTMLDivElement>(null), trailWalked = useRef<HTMLDivElement>(null), trailMarker = useRef<HTMLSpanElement>(null), progressBar = useRef<HTMLDivElement>(null);
-    const input = useRef({ phase: 0, haze: 0, reduced: false });
+    const input = useRef({ phase: 0, horizon: 0, reduced: false });
     const engine = useRef<{ wake: () => void }>(null);
     const metrics = useRef<JourneyMetrics>(journeyMetrics(window.innerHeight, 4000));
     const route = useRef<number[]>([]), offsets = useRef<number[]>([]);
@@ -107,7 +107,7 @@ export default function FlightApp() {
             if (stop !== current)
                 setActive(current = stop);
             input.current.phase = state.phase;
-            input.current.haze = state.haze;
+            input.current.horizon = state.horizon;
             engine.current?.wake();
         };
         const resize = () => {
@@ -161,7 +161,7 @@ export default function FlightApp() {
         void import('./engine').then(({ createMountainFlight }) => {
             if (cancelled)
                 return;
-            const flight = createMountainFlight({ host: host.current!, greeting: greeting.current!, photograph: photograph.current!, vignette: vignette.current!, intro: intro.current!, input: input.current, onReady: () => setReady(true), onError: () => setFallback(true) });
+            const flight = createMountainFlight({ host: host.current!, greeting: greeting.current!, front: front.current!, photograph: photograph.current!, vignette: vignette.current!, intro: intro.current!, input: input.current, onReady: () => setReady(true), onError: () => setFallback(true) });
             engine.current = flight;
             dispose = flight.dispose;
         }).catch(() => { if (!cancelled) {
@@ -186,12 +186,13 @@ export default function FlightApp() {
     <div ref={vignette} className="flight-vignette" aria-hidden="true"/>
     <div ref={veil} className="article-veil" aria-hidden="true"/>
     <canvas ref={greeting} className="flight-greeting" aria-hidden="true"/>
+    <canvas ref={front} className="flight-front" aria-hidden="true"/>
     <div ref={contact} className="contact-stage">
       <h2 className="contact-title">Let’s connect.</h2>
       <nav ref={contactLinks} className="contact-links" aria-label="Get in touch" inert>
         <a href="https://www.linkedin.com/in/niklas-kornev-ba268133a/" target="_blank" rel="noopener noreferrer" aria-label="Connect with Niklas on LinkedIn"><Sketch d={CONTACT_SKETCHES.linkedin} className="contact-sketch"/><span>LinkedIn ↗</span></a>
         <a href="mailto:niklas@go-findus.tech" aria-label="Email Niklas at niklas@go-findus.tech"><Sketch d={CONTACT_SKETCHES.email} className="contact-sketch"/><span>Email ↗</span></a>
-        <a href="https://soundcloud.com/jigglniggl" target="_blank" rel="noopener noreferrer" aria-label="Listen to S0N!K on SoundCloud"><Sketch d={CONTACT_SKETCHES.soundcloud} className="contact-sketch"/><span>SoundCloud ↗</span></a>
+        <a href="https://substack.com/@s0medude" target="_blank" rel="noopener noreferrer" aria-label="Read Niklas on Substack"><Sketch d={CONTACT_SKETCHES.substack} className="contact-sketch"/><span>Substack ↗</span></a>
       </nav>
     </div>
     <div ref={intro} className="flight-intro">
@@ -209,7 +210,7 @@ export default function FlightApp() {
         <SectionMark index={index} number={stopNumber(index)}/>
         <Sketch d={SKETCHES[section.shape]} className="section-sketch reveal"/>
         <h3 className="reveal">{section.href ? <a href={section.href} target="_blank" rel="noopener noreferrer">{section.title}</a> : section.title}</h3>
-        {section.paragraphs.map((paragraph, i) => <p key={i}>{section.id === 'music' ? <>{paragraph.split('SoundCloud')[0]}<a href="https://soundcloud.com/jigglniggl" target="_blank" rel="noopener noreferrer">SoundCloud</a>{paragraph.split('SoundCloud')[1]}</> : paragraph}</p>)}
+        {section.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
         {section.tracks?.map(track => <div key={track.id} className="article-player" aria-label={track.label + ' on SoundCloud'}>
           <iframe title={track.label + ' on SoundCloud'} width="100%" height="120" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={'https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A' + track.id + '&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true'}/>
           <a href={track.href} target="_blank" rel="noopener noreferrer">{track.label} ↗</a>

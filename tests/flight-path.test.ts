@@ -37,10 +37,10 @@ test('the camera holds still through the article body with short motion overlaps
         assert.equal(m.reading, articleHeight + 900);
         const entering = journeyAt(m.approach + 300, m);
         assert.equal(entering.reading, true);
-        assert.ok(entering.haze > .9 && entering.phase < READING_CAMERA);
+        assert.ok(entering.horizon > .9 && entering.phase < READING_CAMERA);
         const leaving = journeyAt(m.approach + m.reading - 300, m);
         assert.equal(leaving.reading, true);
-        assert.ok(leaving.haze === 1 && leaving.phase > READING_CAMERA);
+        assert.ok(leaving.horizon === 1 && leaving.phase > READING_CAMERA);
         assert.ok(journeyAt(m.approach + m.reading + 50, m).phase > READING_CAMERA);
     }
 });
@@ -148,24 +148,36 @@ test('every section and every contact link has a line drawing made of separate s
         drawing.forEach(stroke => assert.match(stroke, /^M[\d.-]+ [\d.-]+ /));
     }
     assert.equal(strokes(SKETCHES.music).length, 6);
-    assert.deepEqual(Object.keys(CONTACT_SKETCHES), ['linkedin', 'email', 'soundcloud']);
+    assert.deepEqual(Object.keys(CONTACT_SKETCHES), ['linkedin', 'email', 'substack']);
 });
-test('the reading haze builds before the first line, holds through the contact stage and clears on both flight legs', () => {
+test('the horizon lowers before the first line, stays low through the contact stage and rises on both flight legs', () => {
     const m = journeyMetrics(900, 4500), contactStart = m.approach + m.reading, contactEnd = contactStart + m.departure * .62;
-    assert.equal(journeyAt(0, m).haze, 0);
-    assert.equal(journeyAt(m.approach * .5, m).haze, 0);
-    assert.ok(journeyAt(m.approach, m).haze > .8);
-    for (let offset = m.approach + m.viewport * .2; offset <= contactStart + m.departure * .45; offset += 31)
-        assert.equal(journeyAt(offset, m).haze, 1);
-    // It clears together with the contact stage, and both are gone before the photograph returns.
-    const clearing = journeyAt(contactEnd - m.departure * .04, m);
-    assert.ok(clearing.haze > 0 && clearing.haze < 1 && clearing.contact > 0 && clearing.contact < 1);
+    assert.equal(journeyAt(0, m).horizon, 0);
+    assert.equal(journeyAt(m.approach * .5, m).horizon, 0);
+    assert.ok(journeyAt(m.approach, m).horizon > .6);
+    // Down before the first lines clear the mountains at the bottom sixth of the screen.
+    assert.ok(journeyAt(m.approach + m.viewport / 6, m).horizon > .97);
+    for (let offset = m.approach + m.viewport * .3; offset <= contactStart + m.departure * .45; offset += 31)
+        assert.equal(journeyAt(offset, m).horizon, 1);
+    const rising = journeyAt(contactEnd - m.departure * .04, m);
+    assert.ok(rising.horizon > 0 && rising.horizon < 1 && rising.contact > 0 && rising.contact < 1);
     for (let offset = contactEnd; offset < m.length; offset += 31) {
         const state = journeyAt(offset, m);
-        assert.equal(state.haze, 0);
+        assert.equal(state.horizon, 0);
         assert.equal(state.contact, 0);
     }
     // No jumps anywhere along the loop.
     for (let offset = 0; offset < m.length; offset += 5)
-        assert.ok(Math.abs(journeyAt(offset + 5, m).haze - journeyAt(offset, m).haze) < .02);
+        assert.ok(Math.abs(journeyAt(offset + 5, m).horizon - journeyAt(offset, m).horizon) < .02);
+});
+test('the camera is perfectly still while the photograph crossfades into the scene and back', () => {
+    const home = getFlightFrame(0);
+    for (let i = 0; i <= 2000; i++) {
+        const phase = i / 2000;
+        if (photoOpacity(phase) > 0) {
+            const frame = getFlightFrame(phase);
+            // Exactly the opening view (0 and -0 both count as zero).
+            [...frame.position, ...frame.target, frame.roll].forEach((v, k) => assert.ok(v === [...home.position, ...home.target, home.roll][k]));
+        }
+    }
 });

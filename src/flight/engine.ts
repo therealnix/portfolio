@@ -2,24 +2,40 @@ import * as THREE from 'three';
 import { circularDelta, getFlightFrame, getPresentation, wrap } from './path';
 import { createPhotoScene, photoPoint, PHOTO_ASPECT, PHOTO_TAN, HIKER_OUTLINE } from './photo-scene';
 import { createSketchPass } from './sketch-pass';
+import { READING_CAMERA } from './journey';
+import { RIDGES } from './ridges';
 interface FlightOptions {
     host: HTMLDivElement;
     greeting: HTMLCanvasElement;
+    front: HTMLCanvasElement;
     photograph: HTMLDivElement;
     vignette: HTMLDivElement;
     intro: HTMLDivElement;
     input: {
         phase: number;
-        haze: number;
+        horizon: number;
         reduced: boolean;
     };
     onReady: () => void;
     onError: () => void;
 }
+// While reading, the highest point of the mountains settles at five sixths of the screen height,
+// and the camera climbs a little on the way, so the near ridges sink further than the far ones.
+const LOW_HORIZON = 5 / 6, RISE = 3;
+// The text passes behind the mountains along a hard edge at the far ridgeline. Above the edge it fades in:
+// starting at FADE_FROM transparency right at the edge and reaching full strength FADE_HEIGHT higher,
+// a share of the screen height. Only the fade is drawn at a fraction of the resolution; the edge stays sharp.
+const FADE_FROM = .78, FADE_HEIGHT = .055, FADE_STEPS = 12, FADE_SCALE = 4;
+// Heights of the stacked fade layers, spaced so that together they ease out smoothly (inverse smoothstep).
+const FADE_OFFSETS = Array.from({ length: FADE_STEPS }, (_, k) => .5 - Math.sin(Math.asin(1 - 2 * (k + .5) / FADE_STEPS) / 3));
+// The outline of the mountains: the far ridgeline of the photograph, carried past both of its edges.
+const OUTLINE = [[-.4, RIDGES[0][0][1]], ...RIDGES[0], [1.4, RIDGES[0][RIDGES[0].length - 1][1]]];
 export function createMountainFlight(options: FlightOptions) {
-    const { host, greeting: canvas, photograph, vignette, intro, input, onError } = options;
-    const ctx = canvas.getContext('2d');
-    if (!ctx)
+    const { host, greeting: canvas, front, photograph, vignette, intro, input, onError } = options;
+    const ctx = canvas.getContext('2d'), frontCtx = front.getContext('2d');
+    const fade = document.createElement('canvas'), fadeCtx = fade.getContext('2d');
+    const cut = document.createElement('canvas'), cutCtx = cut.getContext('2d');
+    if (!ctx || !frontCtx || !fadeCtx || !cutCtx)
         throw new Error('Canvas unavailable');
     // The scene is photographic texture on smooth meshes, so multisampling buys nothing here.
     const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
@@ -29,17 +45,37 @@ export function createMountainFlight(options: FlightOptions) {
     const world = createPhotoScene(renderer), sketchPass = createSketchPass(renderer);
     const camera = new THREE.PerspectiveCamera(51, 1, .1, 2400);
     camera.zoom = 1.08;
+    const projection = new THREE.Matrix4();
     const font = getComputedStyle(document.body).fontFamily;
-    let disposed = false, loaded = false, running = false, width = 1, height = 1, frameId = 0, last = 0, phase = 0, haze = 0, lastKey = '';
+    let disposed = false, loaded = false, running = false, width = 1, height = 1, frameId = 0, last = 0, phase = 0, horizon = 0, shift = 0, lastKey = '';
     // Resolution steps down if this machine cannot keep up with the flight.
-    let quality = 1, slow = 0, greeted = false;
+    let quality = 1, slow = 0, greeted = false, fronted = false;
     const people = HIKER_OUTLINE.map(([u, v]) => photoPoint(u, v, 22));
+    const outline = new THREE.CatmullRomCurve3(OUTLINE.map(([u, v]) => photoPoint(u, v))).getPoints(320);
     const projected = new THREE.Vector3(), look = new THREE.Vector3();
+    const toScreen = (point: THREE.Vector3) => {
+        projected.copy(point).project(camera);
+        return [(projected.x * .5 + .5) * width, (-projected.y * .5 + .5) * height];
+    };
+    /** Place the camera on the flight path, raised and with the horizon lowered by `low` (0 to 1). */
+    const aim = (at: number, low: number) => {
+        const flight = getFlightFrame(at);
+        camera.position.set(flight.position[0], flight.position[1] + RISE * low, flight.position[2]);
+        look.set(flight.target[0], flight.target[1] + RISE * low, flight.target[2]);
+        camera.up.set(Math.sin(flight.roll), Math.cos(flight.roll), 0);
+        camera.lookAt(look);
+        camera.updateMatrixWorld();
+        // A lens shift: the whole picture slides down without changing its perspective.
+        camera.projectionMatrix.copy(projection);
+        camera.projectionMatrix.elements[9] += shift * low;
+        camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+        return flight;
+    };
     const size = () => {
         const dpr = Math.min(window.devicePixelRatio || 1, width < 768 ? 1.25 : 1.5);
         renderer.setPixelRatio(dpr * quality);
         renderer.setSize(width, height, false);
-        sketchPass.resize(Math.round(width * dpr * quality), Math.round(height * dpr * quality), dpr * quality);
+        sketchPass.resize(Math.round(width * dpr * quality), Math.round(height * dpr * quality));
         return dpr;
     };
     const resize = () => {
@@ -51,32 +87,89 @@ export function createMountainFlight(options: FlightOptions) {
         camera.aspect = width / height;
         camera.fov = 2 * Math.atan(PHOTO_TAN * Math.min(1, PHOTO_ASPECT / camera.aspect)) * 180 / Math.PI;
         camera.updateProjectionMatrix();
-        canvas.width = Math.round(width * dpr);
-        canvas.height = Math.round(height * dpr);
+        projection.copy(camera.projectionMatrix);
+        // Measure where the outline would sit in the raised reading view, and shift it to the low horizon.
+        shift = 0;
+        aim(READING_CAMERA, 1);
+        let top = height;
+        for (const point of outline) {
+            const [x, y] = toScreen(point);
+            if (x >= 0 && x <= width)
+                top = Math.min(top, y);
+        }
+        shift = 2 * (LOW_HORIZON - top / height);
+        for (const target of [canvas, front]) {
+            target.width = Math.round(width * dpr);
+            target.height = Math.round(height * dpr);
+        }
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        frontCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cut.width = front.width;
+        cut.height = front.height;
+        fade.width = Math.ceil(width / FADE_SCALE);
+        fade.height = Math.ceil(height / FADE_SCALE);
         lastKey = '';
         wake();
     };
     const maskPeople = () => {
         ctx.beginPath();
         ctx.rect(-width, -height, width * 3, height * 3);
-        people.forEach((point, i) => { projected.copy(point).project(camera); const x = (projected.x * .5 + .5) * width, y = (-projected.y * .5 + .5) * height; if (i)
+        people.forEach((point, i) => { const [x, y] = toScreen(point); if (i)
             ctx.lineTo(x, y);
         else
             ctx.moveTo(x, y); });
         ctx.closePath();
         ctx.clip('evenodd');
     };
+    /** Copy the mountains below their outline onto the front canvas, which lies above the article. */
+    const drawFront = () => {
+        // The area below the outline, in CSS pixels.
+        const shape = new Path2D();
+        outline.forEach((point, i) => {
+            const [x, y] = toScreen(point);
+            if (!i)
+                shape.moveTo(-width, y);
+            shape.lineTo(x, y);
+            if (i === outline.length - 1)
+                shape.lineTo(width * 2, y);
+        });
+        shape.lineTo(width * 2, height * 2);
+        shape.lineTo(-width, height * 2);
+        shape.closePath();
+        // The fade above the edge: the same area stacked at rising heights, at low resolution.
+        const scale = 1 / FADE_SCALE;
+        fadeCtx.setTransform(1, 0, 0, 1, 0, 0);
+        fadeCtx.clearRect(0, 0, fade.width, fade.height);
+        fadeCtx.globalCompositeOperation = 'lighter';
+        fadeCtx.fillStyle = `rgba(255,255,255,${FADE_FROM / FADE_STEPS})`;
+        for (const offset of FADE_OFFSETS) {
+            fadeCtx.setTransform(scale, 0, 0, scale, 0, -height * scale * FADE_HEIGHT * offset);
+            fadeCtx.fill(shape);
+        }
+        // The cut: fully opaque below the outline with a sharp edge, plus the fade above it.
+        const dpr = front.width / width;
+        cutCtx.setTransform(1, 0, 0, 1, 0, 0);
+        cutCtx.clearRect(0, 0, cut.width, cut.height);
+        cutCtx.globalCompositeOperation = 'source-over';
+        cutCtx.drawImage(fade, 0, 0, fade.width * FADE_SCALE * dpr, fade.height * FADE_SCALE * dpr);
+        cutCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cutCtx.fillStyle = '#fff';
+        cutCtx.fill(shape);
+        frontCtx.globalCompositeOperation = 'copy';
+        frontCtx.drawImage(renderer.domElement, 0, 0, width, height);
+        frontCtx.globalCompositeOperation = 'destination-in';
+        frontCtx.drawImage(cut, 0, 0, width, height);
+        frontCtx.globalCompositeOperation = 'source-over';
+    };
     const draw = (dt: number) => {
-        const flight = getFlightFrame(phase), presentation = getPresentation(phase), sketch = input.reduced ? 0 : presentation.sketch;
+        const flight = aim(phase, horizon), presentation = getPresentation(phase), sketch = input.reduced ? 0 : presentation.sketch;
         const hero = input.reduced || !loaded ? 1 : flight.photo, greeting = input.reduced ? 0 : presentation.greeting;
-        camera.position.fromArray(flight.position);
-        look.fromArray(flight.target);
-        camera.up.set(Math.sin(flight.roll), Math.cos(flight.roll), 0);
-        camera.lookAt(look);
-        camera.updateMatrixWorld();
+        const layered = loaded && hero < .999 && !input.reduced && horizon > .001;
         if (loaded && hero < .999 && !input.reduced) {
-            sketchPass.render(world.scene, camera, sketch, haze);
+            sketchPass.render(world.scene, camera, sketch, horizon, 1 - (1 - LOW_HORIZON) * horizon - .5 * (1 - horizon));
+            // Read straight back while this frame's drawing buffer is still current.
+            if (layered)
+                drawFront();
             // Count frames that miss 60 per second; a run of them lowers the render resolution one step.
             slow = dt > .021 ? slow + 1 : Math.max(0, slow - 1);
             if (slow > 24 && quality > .6) {
@@ -84,6 +177,12 @@ export function createMountainFlight(options: FlightOptions) {
                 slow = 0;
                 size();
             }
+        }
+        if (layered !== fronted) {
+            front.style.visibility = layered ? 'visible' : 'hidden';
+            if (!layered)
+                frontCtx.clearRect(0, 0, width, height);
+            fronted = layered;
         }
         photograph.style.opacity = String(hero);
         photograph.style.transform = 'scale(1.08)';
@@ -117,15 +216,15 @@ export function createMountainFlight(options: FlightOptions) {
         last = now;
         const delta = circularDelta(phase, input.phase);
         phase = Math.abs(delta) < .00002 ? input.phase : wrap(phase + delta * (1 - Math.exp(-dt * 5)));
-        // The reading haze eases in and out at the same pace as the camera.
-        const goal = input.reduced ? 0 : input.haze;
-        haze = Math.abs(goal - haze) < .0005 ? goal : haze + (goal - haze) * (1 - Math.exp(-dt * 5));
-        // Everything on screen follows the flight phase and the haze. Once both have settled, the loop stops until the next scroll.
-        const key = `${phase}:${haze}:${width}:${height}:${loaded}:${input.reduced}`;
+        // The horizon eases down and back up at the same pace as the camera.
+        const goal = input.reduced ? 0 : input.horizon;
+        horizon = Math.abs(goal - horizon) < .0005 ? goal : horizon + (goal - horizon) * (1 - Math.exp(-dt * 4));
+        // Everything on screen follows the flight phase and the horizon. Once both have settled, the loop stops until the next scroll.
+        const key = `${phase}:${horizon}:${width}:${height}:${loaded}:${input.reduced}`;
         if (key !== lastKey) {
             lastKey = key;
             draw(dt);
-        } else if (phase === input.phase && haze === goal) {
+        } else if (phase === input.phase && horizon === goal) {
             running = false;
             return;
         }
@@ -141,7 +240,7 @@ export function createMountainFlight(options: FlightOptions) {
     void world.ready.then(() => { if (!disposed) {
         // Upload the textures and compile both passes now, behind the opening photograph,
         // so the first scroll does not pay for them.
-        sketchPass.render(world.scene, camera, .5, .5);
+        sketchPass.render(world.scene, camera, .5);
         loaded = true;
         lastKey = '';
         wake();
