@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { ARTICLE_SECTIONS } from './article-content';
-import { journeyAt, journeyMetrics, remapJourneyOffset } from './journey';
+import { journeyAt, journeyMetrics, LOOPS, MIDDLE_LOOP, nearEdge, recenter, remapJourneyOffset } from './journey';
 import type { JourneyMetrics } from './journey';
 import { ridgePath, trailHeight, trailPath } from './ridges';
 import { CONTACT_SKETCHES, SKETCHES, strokes } from './sketches';
@@ -36,9 +36,9 @@ function paperGrain() {
 export default function FlightApp() {
     const root = useRef<HTMLElement>(null), host = useRef<HTMLDivElement>(null), greeting = useRef<HTMLCanvasElement>(null), front = useRef<HTMLCanvasElement>(null);
     const photograph = useRef<HTMLDivElement>(null), vignette = useRef<HTMLDivElement>(null), veil = useRef<HTMLDivElement>(null), intro = useRef<HTMLDivElement>(null), spacer = useRef<HTMLDivElement>(null);
-    const article = useRef<HTMLElement>(null), contact = useRef<HTMLDivElement>(null), contactLinks = useRef<HTMLElement>(null), sections = useRef<HTMLElement[]>([]);
+    const article = useRef<HTMLElement>(null), contact = useRef<HTMLDivElement>(null), contactLinks = useRef<HTMLElement>(null), sections = useRef<HTMLElement[]>([]), probe = useRef<HTMLDivElement>(null);
     const trailNav = useRef<HTMLElement>(null), trailProfile = useRef<HTMLDivElement>(null), trailWalked = useRef<HTMLDivElement>(null), trailMarker = useRef<HTMLSpanElement>(null), progressBar = useRef<HTMLDivElement>(null);
-    const input = useRef({ phase: 0, horizon: 0, reduced: false });
+    const input = useRef({ phase: 0, horizon: 0, front: false, reduced: false });
     const engine = useRef<{ wake: () => void }>(null);
     const metrics = useRef<JourneyMetrics>(journeyMetrics(window.innerHeight, 4000));
     const route = useRef<number[]>([]), offsets = useRef<number[]>([]);
@@ -60,7 +60,7 @@ export default function FlightApp() {
         document.documentElement.classList.remove('dark');
         const previous = history.scrollRestoration;
         history.scrollRestoration = 'manual';
-        let initialized = false, current = -1, trailWidth = 0, trailHeightPx = 0;
+        let initialized = false, current = -1, trailWidth = 0, trailHeightPx = 0, touching = false, settleTimer = 0;
         // Scrolling only writes a style when its value actually changed, and never reads layout.
         const shown: Record<string, string | boolean> = {};
         const put = (key: string, value: string | boolean, apply: (value: never) => void) => { if (shown[key] !== value) {
@@ -72,13 +72,15 @@ export default function FlightApp() {
                 return;
             const m = metrics.current;
             let y = window.scrollY;
-            if (y < 2) {
-                y += m.length;
+            // Every loop looks the same. Once the scroll has settled the reader is moved back to the middle loop,
+            // which nobody can see; only right at an end of the page does that happen at once.
+            if (nearEdge(y, m.length)) {
+                y = recenter(y, m.length) ?? y;
                 window.scrollTo({ top: y, behavior: 'instant' });
             }
-            else if (y > m.length * 2 - 2) {
-                y -= m.length;
-                window.scrollTo({ top: y, behavior: 'instant' });
+            else if (!settlesOnScrollEnd) {
+                clearTimeout(settleTimer);
+                settleTimer = window.setTimeout(settle, 220);
             }
             const state = journeyAt(y, m), away = state.contact.toFixed(3);
             put('top', `${Math.floor(y / m.length) * m.length + m.approach + m.viewport}px`, (value: string) => { article.current!.style.top = value; });
@@ -113,7 +115,28 @@ export default function FlightApp() {
                 setActive(current = stop);
             input.current.phase = state.phase;
             input.current.horizon = state.horizon;
+            // The mountains only have to be drawn in front while article text can be near them.
+            input.current.front = state.readOffset > -12 && state.readOffset < m.reading;
             engine.current?.wake();
+        };
+        const settlesOnScrollEnd = 'onscrollend' in window;
+        const settle = () => {
+            settleTimer = 0;
+            if (touching || staticMode)
+                return;
+            const target = recenter(window.scrollY, metrics.current.length);
+            if (target !== null) {
+                window.scrollTo({ top: target, behavior: 'instant' });
+                update();
+            }
+        };
+        const touchStart = () => { touching = true; };
+        const touchEnd = () => {
+            touching = false;
+            if (!settlesOnScrollEnd) {
+                clearTimeout(settleTimer);
+                settleTimer = window.setTimeout(settle, 220);
+            }
         };
         const resize = () => {
             if (!article.current)
@@ -123,10 +146,14 @@ export default function FlightApp() {
                 article.current!.inert = false;
                 return;
             }
-            const before = metrics.current, next = journeyMetrics(window.innerHeight, article.current!.offsetHeight);
-            const offset = initialized ? remapJourneyOffset(window.scrollY, before, next) : 0;
+            // The height of the screen with the browser's bars hidden. On phones the address bar comes and goes
+            // while scrolling; measuring against the large viewport keeps everything still when it does.
+            const viewport = probe.current!.offsetHeight || window.innerHeight;
+            const before = metrics.current, next = journeyMetrics(viewport, article.current!.offsetHeight);
+            const changed = !initialized || before.viewport !== next.viewport || before.articleHeight !== next.articleHeight;
+            const offset = initialized && changed ? remapJourneyOffset(window.scrollY, before, next) : 0;
             metrics.current = next;
-            spacer.current!.style.height = `${next.length * 2 + next.viewport}px`;
+            spacer.current!.style.height = `${next.length * LOOPS + next.viewport}px`;
             // A section becomes the current stop when its title reaches the reading line.
             offsets.current = sections.current.map(section => section.offsetTop);
             const marks = offsets.current.map(top => Math.min(1, (top + next.viewport * .58) / next.reading));
@@ -138,7 +165,8 @@ export default function FlightApp() {
             trailHeightPx = trailProfile.current!.offsetHeight;
             delete shown.route;
             initialized = true;
-            window.scrollTo({ top: next.length + offset, behavior: 'instant' });
+            if (changed)
+                window.scrollTo({ top: next.length * MIDDLE_LOOP + offset, behavior: 'instant' });
             update();
         };
         resize();
@@ -148,7 +176,23 @@ export default function FlightApp() {
         observer.observe(article.current!);
         window.addEventListener('resize', resize);
         window.addEventListener('scroll', update, { passive: true });
-        return () => { observer.disconnect(); window.removeEventListener('resize', resize); window.removeEventListener('scroll', update); document.body.classList.remove('flight-mode'); history.scrollRestoration = previous; };
+        if (settlesOnScrollEnd)
+            window.addEventListener('scrollend', settle);
+        window.addEventListener('touchstart', touchStart, { passive: true });
+        window.addEventListener('touchend', touchEnd, { passive: true });
+        window.addEventListener('touchcancel', touchEnd, { passive: true });
+        return () => {
+            observer.disconnect();
+            clearTimeout(settleTimer);
+            window.removeEventListener('resize', resize);
+            window.removeEventListener('scroll', update);
+            window.removeEventListener('scrollend', settle);
+            window.removeEventListener('touchstart', touchStart);
+            window.removeEventListener('touchend', touchEnd);
+            window.removeEventListener('touchcancel', touchEnd);
+            document.body.classList.remove('flight-mode');
+            history.scrollRestoration = previous;
+        };
     }, [staticMode]);
     useEffect(() => {
         if (staticMode)
@@ -176,16 +220,41 @@ export default function FlightApp() {
         return () => { cancelled = true; engine.current = null; dispose?.(); };
     }, []);
     const readArticle = () => {
-        const m = metrics.current;
-        window.scrollTo({ top: m.length + m.approach + m.viewport * .8, behavior: 'smooth' });
+        // Forward to the article of this loop, or of the next one when the reader is already past it.
+        const m = metrics.current, y = window.scrollY;
+        let top = Math.floor(y / m.length) * m.length + m.approach + m.viewport * .8;
+        if (top < y)
+            top += m.length;
+        window.scrollTo({ top, behavior: 'smooth' });
     };
     const visitStop = (index: number) => {
         const m = metrics.current;
         window.scrollTo({ top: Math.floor(window.scrollY / m.length) * m.length + m.approach + offsets.current[index] + m.viewport * .78, behavior: 'smooth' });
     };
-    const profile = trailPath(stops, 1000, 100);
+    const profile = useMemo(() => trailPath(stops, 1000, 100), [stops]);
+    // The article never changes; it is built once, so moving between sections only re-renders the route.
+    const articleView = useMemo(() => <article ref={article} className="portfolio-article" aria-labelledby="article-title">
+      <header className="article-heading">
+        <p className="article-byline">I provide you with.</p>
+        <h2 id="article-title">Hi!<br />I'm Nik.</h2>
+        <p className="article-deck">I'm a 20-year-old dual data science student from Munich with the ambition to build cool shit. With that said, here are some of my recent projects.</p>
+      </header>
+      {ARTICLE_SECTIONS.map((section, index) => <section key={section.id} id={section.id} ref={node => { if (node)
+            sections.current[index] = node; }} className="article-section" data-shape={section.shape}>
+        <SectionMark index={index} number={stopNumber(index)}/>
+        <Sketch d={SKETCHES[section.shape]} className="section-sketch reveal"/>
+        <h3 className="reveal">{section.href ? <a href={section.href} target="_blank" rel="noopener noreferrer">{section.title}</a> : section.title}</h3>
+        {section.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
+        {section.tracks?.map(track => <div key={track.id} className="article-player" aria-label={track.label + ' on SoundCloud'}>
+          <iframe title={track.label + ' on SoundCloud'} width="100%" height="120" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={'https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A' + track.id + '&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true'}/>
+          <a href={track.href} target="_blank" rel="noopener noreferrer">{track.label} ↗</a>
+        </div>)}
+      </section>)}
+      <footer className="article-ending"><SectionMark index={0}/><p>With that said, <a href="mailto:niklas@go-findus.tech">hit me up</a> if you want to build, do or yap about something sick.</p><p>I wish you a wonderful day :)</p></footer>
+    </article>, []);
     return <main ref={root} className={`mountain-flight ${staticMode ? 'is-static' : ''}`}>
     <div ref={spacer} aria-hidden="true"/>
+    <div ref={probe} className="flight-probe" aria-hidden="true"/>
     <div ref={host} className="flight-world" aria-hidden="true"/>
     <div ref={photograph} className="flight-photograph" aria-hidden="true"><img src="/flight/mountain-upscaled.webp" alt="" fetchPriority="high" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = originalPhoto; }}/></div>
     <div ref={vignette} className="flight-vignette" aria-hidden="true"/>
@@ -204,25 +273,7 @@ export default function FlightApp() {
       <h1 className="sr-only">Hi! I'm Niklas Kornev.</h1>
       <button className="flight-begin" onClick={readArticle}><span>{ready ? 'get to know me' : 'PREPARING THE VIEW'}</span><span aria-hidden="true">↓</span></button>
     </div>
-    <article ref={article} className="portfolio-article" aria-labelledby="article-title">
-      <header className="article-heading">
-        <p className="article-byline">I provide you with.</p>
-        <h2 id="article-title">Hi!<br />I'm Nik.</h2>
-        <p className="article-deck">I'm a 20-year-old dual data science student from Munich with the ambition to build cool shit. With that said, here are some of my recent projects.</p>
-      </header>
-      {ARTICLE_SECTIONS.map((section, index) => <section key={section.id} id={section.id} ref={node => { if (node)
-            sections.current[index] = node; }} className="article-section" data-shape={section.shape}>
-        <SectionMark index={index} number={stopNumber(index)}/>
-        <Sketch d={SKETCHES[section.shape]} className="section-sketch reveal"/>
-        <h3 className="reveal">{section.href ? <a href={section.href} target="_blank" rel="noopener noreferrer">{section.title}</a> : section.title}</h3>
-        {section.paragraphs.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
-        {section.tracks?.map(track => <div key={track.id} className="article-player" aria-label={track.label + ' on SoundCloud'}>
-          <iframe title={track.label + ' on SoundCloud'} width="100%" height="120" loading="lazy" scrolling="no" frameBorder="0" allow="autoplay; encrypted-media" src={'https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A' + track.id + '&color=%234b4e3d&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true'}/>
-          <a href={track.href} target="_blank" rel="noopener noreferrer">{track.label} ↗</a>
-        </div>)}
-      </section>)}
-      <footer className="article-ending"><SectionMark index={0}/><p>With that said, <a href="mailto:niklas@go-findus.tech">hit me up</a> if you want to build, do or yap about something sick.</p><p>I wish you a wonderful day :)</p></footer>
-    </article>
+    {articleView}
     <nav ref={trailNav} className="flight-trail" aria-label="Sections" inert>
       <div ref={trailProfile} className="trail-profile" aria-hidden="true">
         <svg className="trail-ground" viewBox="0 0 1000 100" preserveAspectRatio="none"><path d={profile}/></svg>

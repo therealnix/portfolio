@@ -46,3 +46,14 @@ export function remapJourneyOffset(offset: number, before: JourneyMetrics, after
         return after.approach + after.reading + contactLocal / before.contact * after.contact;
     return after.approach + after.reading + after.contact + (contactLocal - before.contact) / before.departure * after.departure;
 }
+// The page holds several loops of scroll and the reader is kept in the middle one, so even a fast fling
+// never runs into either end of the page and loses its momentum there.
+export const LOOPS = 5;
+export const MIDDLE_LOOP = Math.floor(LOOPS / 2);
+/** The same point of the journey in the middle loop, or null when the reader is already there. */
+export function recenter(y: number, length: number) {
+    const loop = Math.floor(y / length);
+    return loop === MIDDLE_LOOP ? null : y + (MIDDLE_LOOP - loop) * length;
+}
+/** Too close to either end of the page to wait until the scroll has settled. */
+export const nearEdge = (y: number, length: number) => y < length * .5 || y > (LOOPS - .5) * length;

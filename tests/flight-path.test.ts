@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { circularDelta, getFlightFrame, getPresentation, photoOpacity, STATIONS, wrap } from '../src/flight/path.ts';
 import { photoDepth, photoPoint, PHOTO_TAN, PHOTO_ASPECT } from '../src/flight/photo-scene.ts';
-import { journeyAt, journeyMetrics, remapJourneyOffset, READING_CAMERA } from '../src/flight/journey.ts';
+import { journeyAt, journeyMetrics, LOOPS, MIDDLE_LOOP, nearEdge, recenter, remapJourneyOffset, READING_CAMERA } from '../src/flight/journey.ts';
 import { ARTICLE_SECTIONS } from '../src/flight/article-content.ts';
 import { RIDGES, ridgePath, trailHeight, trailPath } from '../src/flight/ridges.ts';
 import { CONTACT_SKETCHES, SKETCHES, strokes } from '../src/flight/sketches.ts';
@@ -215,4 +215,25 @@ test('the return flight retraces the fly-by straight back to the opening frame',
     assert.ok(Math.hypot(...leave.position.map((v, k) => v - from.position[k])) < 1e-3);
     const step = (a: number, b: number) => Math.hypot(...getFlightFrame(a).position.map((v, k) => v - getFlightFrame(b).position[k]));
     assert.ok(step(.955, .965) < step(.70, .71) / 4);
+});
+test('moving the reader back to the middle loop keeps them at exactly the same point of the journey', () => {
+    const m = journeyMetrics(900, 4500);
+    assert.ok(LOOPS >= 3 && MIDDLE_LOOP > 0 && MIDDLE_LOOP < LOOPS - 1);
+    for (let y = 0; y < m.length * LOOPS; y += 97) {
+        const moved = recenter(y, m.length);
+        if (Math.floor(y / m.length) === MIDDLE_LOOP) {
+            assert.equal(moved, null);
+            continue;
+        }
+        assert.ok(moved !== null && Math.floor(moved / m.length) === MIDDLE_LOOP);
+        const before = journeyAt(y, m), after = journeyAt(moved, m);
+        assert.ok(Math.abs(before.local - after.local) < 1e-6);
+        assert.ok(Math.abs(after.phase - before.phase) < 1e-12);
+    }
+    // There is at least a whole loop of room on either side of the middle before an end of the page is near.
+    assert.equal(nearEdge(m.length * MIDDLE_LOOP, m.length), false);
+    assert.equal(nearEdge(m.length * (MIDDLE_LOOP + 1) - 1, m.length), false);
+    assert.equal(nearEdge(m.length * (MIDDLE_LOOP - 1), m.length), false);
+    assert.equal(nearEdge(m.length * .2, m.length), true);
+    assert.equal(nearEdge(m.length * (LOOPS - .2), m.length), true);
 });

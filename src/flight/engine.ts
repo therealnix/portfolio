@@ -14,6 +14,8 @@ interface FlightOptions {
     input: {
         phase: number;
         horizon: number;
+        /** Whether article text can be near the mountains, so they have to be drawn in front of it. */
+        front: boolean;
         reduced: boolean;
     };
     onReady: () => void;
@@ -26,6 +28,9 @@ const LOW_HORIZON = 5 / 6, RISE = 3;
 // starting at FADE_FROM transparency right at the edge and reaching full strength FADE_HEIGHT higher,
 // a share of the screen height. Only the fade is drawn at a fraction of the resolution; the edge stays sharp.
 const FADE_FROM = .78, FADE_HEIGHT = .055, FADE_STEPS = 12, FADE_SCALE = 4;
+// The mountains in front of the text only ever cover the lower part of the screen, so the front layer
+// is just that part: FRONT_SHARE of the screen height, anchored to the bottom.
+const FRONT_SHARE = .55;
 // Heights of the stacked fade layers, spaced so that together they ease out smoothly (inverse smoothstep).
 const FADE_OFFSETS = Array.from({ length: FADE_STEPS }, (_, k) => .5 - Math.sin(Math.asin(1 - 2 * (k + .5) / FADE_STEPS) / 3));
 // The outline of the mountains: the far ridgeline of the photograph, carried past both of its edges.
@@ -49,7 +54,10 @@ export function createMountainFlight(options: FlightOptions) {
     const font = getComputedStyle(document.body).fontFamily;
     let disposed = false, loaded = false, running = false, width = 1, height = 1, frameId = 0, last = 0, phase = 0, horizon = 0, shift = 0, lastKey = '';
     // Resolution steps down if this machine cannot keep up with the flight.
-    let quality = 1, slow = 0, greeted = false, fronted = false;
+    let quality = 1, slow = 0, greeted = false, fronted = false, frontTop = 0;
+    // Recent frame intervals. A browser or power setting can cap the frame rate (Windows energy saver holds
+    // Edge at about 30 per second); a steady cap is not a slow frame, and lowering the resolution would not help.
+    const intervals: number[] = [];
     const people = HIKER_OUTLINE.map(([u, v]) => photoPoint(u, v, 22));
     const outline = new THREE.CatmullRomCurve3(OUTLINE.map(([u, v]) => photoPoint(u, v))).getPoints(320);
     const projected = new THREE.Vector3(), look = new THREE.Vector3();
@@ -98,18 +106,28 @@ export function createMountainFlight(options: FlightOptions) {
                 top = Math.min(top, y);
         }
         shift = 2 * (LOW_HORIZON - top / height);
-        for (const target of [canvas, front]) {
-            target.width = Math.round(width * dpr);
-            target.height = Math.round(height * dpr);
-        }
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        frontTop = Math.round(height * (1 - FRONT_SHARE));
+        front.style.top = `${frontTop}px`;
+        front.style.height = `${height - frontTop}px`;
+        front.width = Math.round(width * dpr);
+        front.height = Math.round((height - frontTop) * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         frontCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         cut.width = front.width;
         cut.height = front.height;
         fade.width = Math.ceil(width / FADE_SCALE);
-        fade.height = Math.ceil(height / FADE_SCALE);
-        lastKey = '';
-        wake();
+        fade.height = Math.ceil((height - frontTop) / FADE_SCALE);
+        // Resizing wipes every canvas. Draw again right away, before the browser shows the frame,
+        // instead of on the next one: otherwise a resize flashes black (on phones every time the address bar moves).
+        if (loaded) {
+            lastKey = key();
+            draw(0);
+        } else {
+            lastKey = '';
+            wake();
+        }
     };
     const maskPeople = () => {
         ctx.beginPath();
@@ -123,10 +141,10 @@ export function createMountainFlight(options: FlightOptions) {
     };
     /** Copy the mountains below their outline onto the front canvas, which lies above the article. */
     const drawFront = () => {
-        // The area below the outline, in CSS pixels.
+        // The area below the outline, in CSS pixels of the front canvas (which starts at frontTop).
         const shape = new Path2D();
         outline.forEach((point, i) => {
-            const [x, y] = toScreen(point);
+            const [x, screenY] = toScreen(point), y = screenY - frontTop;
             if (!i)
                 shape.moveTo(-width, y);
             shape.lineTo(x, y);
@@ -155,23 +173,32 @@ export function createMountainFlight(options: FlightOptions) {
         cutCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         cutCtx.fillStyle = '#fff';
         cutCtx.fill(shape);
+        // Only the lower part of the rendered frame is copied.
+        const source = renderer.domElement, ratio = source.height / height;
         frontCtx.globalCompositeOperation = 'copy';
-        frontCtx.drawImage(renderer.domElement, 0, 0, width, height);
+        frontCtx.drawImage(source, 0, frontTop * ratio, source.width, (height - frontTop) * ratio, 0, 0, width, height - frontTop);
         frontCtx.globalCompositeOperation = 'destination-in';
-        frontCtx.drawImage(cut, 0, 0, width, height);
+        frontCtx.drawImage(cut, 0, 0, width, height - frontTop);
         frontCtx.globalCompositeOperation = 'source-over';
     };
     const draw = (dt: number) => {
         const flight = aim(phase, horizon), presentation = getPresentation(phase), sketch = input.reduced ? 0 : presentation.sketch;
         const hero = input.reduced || !loaded ? 1 : flight.photo, greeting = input.reduced ? 0 : presentation.greeting;
-        const layered = loaded && hero < .999 && !input.reduced && horizon > .001;
+        const layered = loaded && hero < .999 && !input.reduced && horizon > .001 && input.front;
         if (loaded && hero < .999 && !input.reduced) {
             sketchPass.render(world.scene, camera, sketch, horizon, 1 - (1 - LOW_HORIZON) * horizon - .5 * (1 - horizon));
             // Read straight back while this frame's drawing buffer is still current.
             if (layered)
                 drawFront();
-            // Count frames that miss 60 per second; a run of them lowers the render resolution one step.
-            slow = dt > .021 ? slow + 1 : Math.max(0, slow - 1);
+            // A run of dropped frames lowers the render resolution one step. A frame counts as dropped when it
+            // took clearly longer than the fastest recent ones and longer than 1/50 s.
+            if (dt > 0) {
+                intervals.push(dt);
+                if (intervals.length > 30)
+                    intervals.shift();
+            }
+            const cadence = Math.min(...intervals);
+            slow = intervals.length >= 10 && dt > Math.max(cadence * 1.45, .02) ? slow + 1 : Math.max(0, slow - 1);
             if (slow > 24 && quality > .6) {
                 quality = Math.max(.6, quality * .85);
                 slow = 0;
@@ -181,11 +208,10 @@ export function createMountainFlight(options: FlightOptions) {
         if (layered !== fronted) {
             front.style.visibility = layered ? 'visible' : 'hidden';
             if (!layered)
-                frontCtx.clearRect(0, 0, width, height);
+                frontCtx.clearRect(0, 0, width, height - frontTop);
             fronted = layered;
         }
         photograph.style.opacity = String(hero);
-        photograph.style.transform = 'scale(1.08)';
         vignette.style.opacity = String(1 - sketch);
         intro.style.opacity = String(greeting);
         intro.style.visibility = greeting > .005 ? 'visible' : 'hidden';
@@ -209,6 +235,7 @@ export function createMountainFlight(options: FlightOptions) {
             ctx.restore();
         }
     };
+    const key = () => `${phase}:${horizon}:${width}:${height}:${loaded}:${input.reduced}:${input.front}`;
     const render = (now: number) => {
         if (disposed)
             return;
@@ -220,9 +247,9 @@ export function createMountainFlight(options: FlightOptions) {
         const goal = input.reduced ? 0 : input.horizon;
         horizon = Math.abs(goal - horizon) < .0005 ? goal : horizon + (goal - horizon) * (1 - Math.exp(-dt * 4));
         // Everything on screen follows the flight phase and the horizon. Once both have settled, the loop stops until the next scroll.
-        const key = `${phase}:${horizon}:${width}:${height}:${loaded}:${input.reduced}`;
-        if (key !== lastKey) {
-            lastKey = key;
+        const current = key();
+        if (current !== lastKey) {
+            lastKey = current;
             draw(dt);
         } else if (phase === input.phase && horizon === goal) {
             running = false;
@@ -238,15 +265,20 @@ export function createMountainFlight(options: FlightOptions) {
         frameId = requestAnimationFrame(render);
     }
     void world.ready.then(() => { if (!disposed) {
-        // Upload the textures and compile both passes now, behind the opening photograph,
-        // so the first scroll does not pay for them.
+        // Upload the textures, compile the shaders for both ways the scene is drawn (straight to the screen near
+        // the photograph, through the print pass everywhere else) and prepare the front layer, all behind the
+        // opening photograph, so the first scroll does not pay for any of it.
+        sketchPass.render(world.scene, camera, 0);
         sketchPass.render(world.scene, camera, .5);
+        drawFront();
+        frontCtx.clearRect(0, 0, width, height - frontTop);
         loaded = true;
         lastKey = '';
         wake();
         options.onReady();
     } }).catch(() => { if (!disposed)
         onError(); });
+    photograph.style.transform = 'scale(1.08)';
     const observer = new ResizeObserver(resize);
     observer.observe(host);
     resize();

@@ -158,3 +158,15 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
   the camera has stopped; scrolling on fades it out while the camera slowly
   starts moving and completes the loop. `journeyMetrics` has a `contact`
   segment for this.
+
+## Smoothness pass of 2026-10-20
+
+- The owner's laptop (Radeon 780M, 1920 × 1200 at 150%) runs Edge at about 30
+  frames per second whenever Windows energy saver is on; an empty page does
+  too. Check the power state before blaming the site for lag.
+- The page holds five loops of scroll and recentres to the middle one when the
+  scroll settles; the scene is sized to `100lvh` so phone address bars do not
+  resize it. Details and measurements are in `docs/mountain-flight.md`.
+- The biggest remaining hitches come from the browser creating the two
+  SoundCloud players while the article scrolls in. Fixing that changes the
+  embeds; ask the owner first.

@@ -1,9 +1,12 @@
-body.flight-mode { background:#10161f; overflow-x:hidden; scrollbar-width:none; }
+body.flight-mode { background:#10161f; overflow-x:hidden; overflow-anchor:none; scrollbar-width:none; }
 body.flight-mode::-webkit-scrollbar { display:none; }
 /* Paper and two muted inks: the slate of the ridges and the ochre of the sunrise. */
 .mountain-flight { position:relative; isolation:isolate; --paper:#efe7d6; --ink:#121b25; --slate:#4f657b; --ochre:#a2691d; --sun:#c68f3c; --ease:cubic-bezier(.2,.7,.1,1); --column:min(660px,calc(100vw - 44px)); --profile:22px; font-family:var(--font-sans); }
 .mountain-flight ::selection { background:#c68f3c59; }
-.flight-world,.flight-photograph,.flight-greeting,.flight-vignette { position:fixed;inset:0;width:100%;height:100%;pointer-events:none; }
+/* The scene is sized to the large viewport (browser bars hidden), so a phone's address bar coming and going
+   never resizes it; while the bar shows, its lowest strip is simply under the bar. */
+.flight-world,.flight-photograph,.flight-greeting,.flight-vignette { position:fixed;inset:0;width:100%;height:100%;height:100lvh;pointer-events:none; }
+.flight-probe { position:fixed;top:0;left:0;width:0;height:100vh;height:100lvh;visibility:hidden;pointer-events:none; }
 .flight-world { z-index:0; }
 .flight-world canvas { display:block;width:100%;height:100%; }
 .flight-photograph { z-index:1;overflow:hidden;will-change:opacity; }
@@ -13,7 +16,7 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .article-veil { display:none;position:fixed;z-index:2;inset:0;pointer-events:none;background:var(--grain,none),var(--paper); }
 .flight-greeting { z-index:3;mix-blend-mode:difference; }
 /* The mountains below their outline, copied above the article: the text rises from behind them. */
-.flight-front { position:fixed;inset:0;z-index:6;width:100%;height:100%;pointer-events:none;visibility:hidden; }
+.flight-front { position:fixed;left:0;top:0;z-index:6;width:100%;height:100%;pointer-events:none;visibility:hidden; }
 
 /* Line drawings: one stroke after the other, once. */
 .sketch { overflow:visible;fill:none;stroke:#2c3d50;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round; }
@@ -21,7 +24,7 @@ body.flight-mode::-webkit-scrollbar { display:none; }
 .sketch.is-in path,.is-in .sketch path,.is-static .sketch path { stroke-dashoffset:0; }
 
 /* Contact stage: in the open sky above the mountains, the title in the weight of the greeting. */
-.contact-stage { position:fixed;z-index:4;left:0;top:0;width:100%;height:calc(100% / 6 * 5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(22px,4.6vh,50px);opacity:0;visibility:hidden;pointer-events:none;color:var(--ink); }
+.contact-stage { position:fixed;z-index:4;left:0;top:0;width:100%;height:calc(100% / 6 * 5);height:calc(100lvh / 6 * 5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(22px,4.6vh,50px);opacity:0;visibility:hidden;pointer-events:none;color:var(--ink); }
 .contact-title { margin:0;text-align:center;font:900 clamp(44px,8.2vw,138px)/.92 var(--font-sans);letter-spacing:-.065em; }
 .contact-links { display:grid;grid-template-columns:repeat(3,1fr);width:min(760px,84vw);pointer-events:auto; }
 .contact-links a { display:flex;flex-direction:column;align-items:center;gap:20px;padding:16px 0;color:inherit;font:600 12px/1 var(--font-sans);letter-spacing:.14em;text-decoration:none;border-radius:12px;cursor:pointer; }
