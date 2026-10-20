@@ -202,13 +202,13 @@ export default function FlightApp() {
     </div>
     <div ref={intro} className="flight-intro">
       <h1 className="sr-only">Hi! I'm Niklas Kornev.</h1>
-      <button className="flight-begin" onClick={readArticle}><span>{ready ? 'get to kow me' : 'PREPARING THE VIEW'}</span><span aria-hidden="true">↓</span></button>
+      <button className="flight-begin" onClick={readArticle}><span>{ready ? 'get to know me' : 'PREPARING THE VIEW'}</span><span aria-hidden="true">↓</span></button>
     </div>
     <article ref={article} className="portfolio-article" aria-labelledby="article-title">
       <header className="article-heading">
         <p className="article-byline">I provide you with.</p>
         <h2 id="article-title">Hi!<br />I'm Nik.</h2>
-        <p className="article-deck">I'm a 20 year old dual datascience student from Munich with the ambition to build cool shit. With that said here are some of my recent projects.</p>
+        <p className="article-deck">I'm a 20-year-old dual data science student from Munich with the ambition to build cool shit. With that said, here are some of my recent projects.</p>
       </header>
       {ARTICLE_SECTIONS.map((section, index) => <section key={section.id} id={section.id} ref={node => { if (node)
             sections.current[index] = node; }} className="article-section" data-shape={section.shape}>
@@ -221,7 +221,7 @@ export default function FlightApp() {
           <a href={track.href} target="_blank" rel="noopener noreferrer">{track.label} ↗</a>
         </div>)}
       </section>)}
-      <footer className="article-ending"><SectionMark index={0}/><p>With that said <a href="mailto:niklas@go-findus.tech">Hit me up</a> if you've want to build, do or yap about something sick.</p><p>I wish you a wonderful day :)</p></footer>
+      <footer className="article-ending"><SectionMark index={0}/><p>With that said, <a href="mailto:niklas@go-findus.tech">hit me up</a> if you want to build, do or yap about something sick.</p><p>I wish you a wonderful day :)</p></footer>
     </article>
     <nav ref={trailNav} className="flight-trail" aria-label="Sections" inert>
       <div ref={trailProfile} className="trail-profile" aria-hidden="true">

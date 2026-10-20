@@ -34,7 +34,7 @@ The flight phase holds at exactly 48% of its route through the article body and 
 
 Earlier layouts: a paper blind with a landscape strip (replaced 2026-10-15, the user did not want the background to scroll away), and a soft focus haze behind the text (replaced the same day; the user wanted no blur, the mountains low and the text emerging from behind them).
 
-Editable paragraphs, project links and track IDs live in `src/flight/article-content.ts`. Introductory and closing copy is in `src/flight/FlightApp.tsx`. The wording is the author's own and is treated as frozen except where the author changes it: on 2026-10-15 the Music paragraph's inline SoundCloud link was removed at the author's request, and the paragraph now ends "Check it out :)" right before the two players. The article moves through Go-findus, Mondono, BMW, Music and "What else i find cool". Both SoundCloud players sit inside the Music passage, each in a light frame with its track link underneath. The iframe markup and URLs are unchanged and nothing covers, hides or animates them.
+Editable paragraphs, project links and track IDs live in `src/flight/article-content.ts`. Introductory and closing copy is in `src/flight/FlightApp.tsx`. The wording is the author's own and is treated as frozen except where the author changes it (on 2026-10-20 the author asked for a pass that fixed spelling and grammar only): on 2026-10-15 the Music paragraph's inline SoundCloud link was removed at the author's request, and the paragraph now ends "Check it out :)" right before the two players. The article moves through Go-findus, Mondono, BMW, Music and "What else i find cool". Both SoundCloud players sit inside the Music passage, each in a light frame with its track link underneath. The iframe markup and URLs are unchanged and nothing covers, hides or animates them.
 
 ### Line drawings
 
@@ -46,7 +46,7 @@ There are no particles in this version. Each section has one line drawing at the
 | Mondono | shopping bag with an M |
 | BMW | car front |
 | Music | six stacked waveforms, drawn the way the ridges are |
-| What else i find cool | spark |
+| What else I find cool | spark |
 
 A drawing is an inline SVG split into strokes. When its section is first scrolled into view, the strokes draw in one after the other with a `stroke-dashoffset` transition, and then stay still. Titles and ridge marks rise in the same way, once (`.reveal`); paragraphs and the player frames are not animated. Nothing in the article animates per frame.
 

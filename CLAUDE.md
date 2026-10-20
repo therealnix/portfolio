@@ -103,7 +103,8 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
   (`src/flight/ridges.ts`) are the recurring line motif. Details are in
   `docs/mountain-flight.md`.
 - The opening frame, the fly-by path and all article wording are unchanged on
-  purpose. The intro button still reads "get to kow me" (typo left as written).
+  purpose. The intro button typo ("get to kow me") was fixed on 2026-10-20 in a
+  spelling and grammar pass the user asked for.
 - The Browser pane crops screenshots when it is hidden. Full-size checks were
   done with headless Edge over the DevTools protocol instead.
 
@@ -150,6 +151,9 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
 - Copy changes the user asked for: the contact stage links Substack
   (`https://substack.com/@s0medude`) instead of SoundCloud, and the Music
   paragraph ends "Check it out :)" without the inline SoundCloud link.
+- 2026-10-20: spelling and grammar pass over all article and intro copy at the
+  user's request, keeping their wording and only fixing errors. Leave the
+  casual tone alone; the galaxy view (`src/App.tsx`) was not part of it.
 - Loop ending (2026-10-15, user request): "Let's connect." appears only once
   the camera has stopped; scrolling on fades it out while the camera slowly
   starts moving and completes the loop. `journeyMetrics` has a `contact`
