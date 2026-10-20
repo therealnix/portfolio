@@ -197,7 +197,7 @@ export default function FlightApp() {
       <nav ref={contactLinks} className="contact-links" aria-label="Get in touch" inert>
         <a href="https://www.linkedin.com/in/niklas-kornev-ba268133a/" target="_blank" rel="noopener noreferrer" aria-label="Connect with Niklas on LinkedIn"><Sketch d={CONTACT_SKETCHES.linkedin} className="contact-sketch"/><span>LinkedIn ↗</span></a>
         <a href="mailto:niklas@go-findus.tech" aria-label="Email Niklas at niklas@go-findus.tech"><Sketch d={CONTACT_SKETCHES.email} className="contact-sketch"/><span>Email ↗</span></a>
-        <a href="https://substack.com/@s0medude" target="_blank" rel="noopener noreferrer" aria-label="Read Niklas on Substack"><Sketch d={CONTACT_SKETCHES.substack} className="contact-sketch"/><span>Substack ↗</span></a>
+        <a href="https://substack.com/@projectnik" target="_blank" rel="noopener noreferrer" aria-label="Read Niklas on Substack"><Sketch d={CONTACT_SKETCHES.substack} className="contact-sketch"/><span>Substack ↗</span></a>
       </nav>
     </div>
     <div ref={intro} className="flight-intro">

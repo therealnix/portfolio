@@ -149,7 +149,7 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
   camera must stay exactly still while the photograph crossfades in and out
   (test in `tests/flight-path.test.ts`).
 - Copy changes the user asked for: the contact stage links Substack
-  (`https://substack.com/@s0medude`) instead of SoundCloud, and the Music
+  (`https://substack.com/@projectnik`) instead of SoundCloud, and the Music
   paragraph ends "Check it out :)" without the inline SoundCloud link.
 - 2026-10-20: spelling and grammar pass over all article and intro copy at the
   user's request, keeping their wording and only fixing errors. Leave the
