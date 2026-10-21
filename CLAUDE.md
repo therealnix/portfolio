@@ -98,7 +98,7 @@ Added 2026-10-02 from Codex sessions of 2026-09-09 and 2026-09-10.
 ## Rework of 2026-10-02
 
 - Art direction after the fly-by: one navy and amber print with cream type.
-  Display type matches the opening greeting ("WELCOME :)" since 2026-10-20) (system heavy sans, no web font, so
+  Display type matches the opening "HI!" (system heavy sans, no web font, so
   the opening frame is untouched). The photograph's five ridgelines
   (`src/flight/ridges.ts`) are the recurring line motif. Details are in
   `docs/mountain-flight.md`.

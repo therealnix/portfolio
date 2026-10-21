@@ -34,8 +34,6 @@ const FRONT_SHARE = .55;
 // Heights of the stacked fade layers, spaced so that together they ease out smoothly (inverse smoothstep).
 const FADE_OFFSETS = Array.from({ length: FADE_STEPS }, (_, k) => .5 - Math.sin(Math.asin(1 - 2 * (k + .5) / FADE_STEPS) / 3));
 // The outline of the mountains: the far ridgeline of the photograph, carried past both of its edges.
-// The greeting on the opening photograph, cut out of the sky.
-const GREETING = 'WELCOME :)';
 const OUTLINE = [[-.4, RIDGES[0][0][1]], ...RIDGES[0], [1.4, RIDGES[0][RIDGES[0].length - 1][1]]];
 export function createMountainFlight(options: FlightOptions) {
     const { host, greeting: canvas, front, photograph, vignette, intro, input, onError } = options;
@@ -230,18 +228,10 @@ export function createMountainFlight(options: FlightOptions) {
             ctx.fillStyle = '#fff';
             ctx.globalAlpha = greeting;
             maskPeople();
-            // The greeting keeps the size the short "HI!" had, unless the longer word would not fit its room.
-            const phone = width < 768, base = (phone ? width * .64 : Math.min(width * .40, height * .47)) / 3;
-            ctx.font = `900 ${base}px ${font}`;
-            ctx.letterSpacing = `${-base * .065}px`;
-            const room = phone ? width * .84 : width * .4, measured = ctx.measureText(GREETING).width;
-            const size = measured > room ? base * room / measured : base;
+            const size = (width < 768 ? width * .64 : Math.min(width * .40, height * .47)) / 3;
             ctx.font = `900 ${size}px ${font}`;
             ctx.letterSpacing = `${-size * .065}px`;
-            const textWidth = ctx.measureText(GREETING).width;
-            // On a phone it is centred above the hikers; on wider screens it sits in the open sky to their left.
-            const x = phone ? (width - textWidth) / 2 : width * .08;
-            ctx.fillText(GREETING, x, height * .32);
+            ctx.fillText('HI!', width * (width < 768 ? .12 : 1 / 3), height * .32);
             ctx.restore();
         }
     };
